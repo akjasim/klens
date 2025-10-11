@@ -1,16 +1,26 @@
-# React + Vite
+# 🎵 KLens – Spotify Data Explorer  
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Live:** https://klens.jasim.dev
 
-Currently, two official plugins are available:
+The UI is built with React and Bootstrap, visualized via Recharts.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Key Features  
 
-## React Compiler
+1. Buttons to run each predefined query
+2. Display total hits for each query
+3. JSON view of the exact dataForRemote request
+4. Dynamic explanation of query logic
+5. Bar chart comparing all query results
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Visualization  
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The app shows:
+1. A bar chart that shows the counts for White Stripes, Queen & Bowie, and Beatles Love
+2. A real-time counter of how many entries were found per query
+3. A JSON viewer displaying the exact Elasticsearch payload
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
