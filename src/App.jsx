@@ -3,11 +3,12 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import {
   BarChart,
   Bar,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
+  Cell,
   ResponsiveContainer,
-  CartesianGrid,
 } from "recharts";
 
 export default function App() {
@@ -16,13 +17,22 @@ export default function App() {
     queenBowie: null,
     beatlesLove: null,
   });
+  const [activeQuery, setActiveQuery] = useState(null);
 
   const elasticUrl = "/api/proxy";
 
   const queries = {
     whiteStripes: {
       label:
-        "1️⃣ How many entries can be found in the index for the group 'White Stripes'?",
+        '1) How many entries can be found in the index for the group "White Stripes"?',
+      explanation:
+        "This query uses `query_string` with quotes on the field `artists.name`. " +
+        'It searches for documents containing the tokens "White" and "Stripes" in order. ' +
+        "Using quotes will make sure that these tokens are treated as a phrase. " +
+        "If we were to remove the quotes around, it would be treated as White OR Stripes, which could yield unwanted results." +
+        "Also, we can use match_phrase instead of query_string which will do consecutive ordered matching by default. We can also use slop if we want to have flexibility of allowing words in between." +
+        "For example, using match_phrase with slop of 1 would look like this: " +
+        'dataForRemote: "{"query":{"match_phrase":{"artists.name":{"query":"White Stripes","slop":1}}},"size":5,"track_total_hits":true}"',
       data: {
         indexAction: "_search",
         indexName: "spotify_tracks",
@@ -30,10 +40,11 @@ export default function App() {
         dataForRemote: {
           query: {
             query_string: {
-              query: "artists.name:White Stripes",
+              query: '"White Stripes"',
+              fields: ["artists.name"],
             },
           },
-          size: 5,
+          size: 30,
           track_total_hits: true,
         },
         pretty: true,
@@ -41,7 +52,13 @@ export default function App() {
     },
     queenBowie: {
       label:
-        "2️⃣ How many entries can be found in the index for songs that Queen created together with David Bowie?",
+        "2) How many entries can be found in the index for songs that Queen created together with David Bowie?",
+      explanation:
+        "We use `bool.must` to combine `term` and `match_phrase`. " +
+        "It finds songs where the artist name is exactly 'Queen' (using `term`) " +
+        "and where 'David Bowie' appears (using `match_phrase`). " +
+        "The reason why we used Queen as exact match is because of the fact that there might be other people having same first name Queen but different last name, we don't want to match that. While query_string was used for Queen, got to see an entry with Queen as first name but a different last name." +
+        "Also match_phrase is used for David Bowie because using query string without quotes would yield unexpected results due to the fact that it will be considered as David OR Bowie.",
       data: {
         indexAction: "_search",
         indexName: "spotify_tracks",
@@ -50,12 +67,12 @@ export default function App() {
           query: {
             bool: {
               must: [
-                { query_string: { query: "artists.name:Queen" } },
-                { query_string: { query: "artists.name:'David Bowie'" } },
+                { term: { "artists.name.keyword": "Queen" } },
+                { match_phrase: { "artists.name": "David Bowie" } },
               ],
             },
           },
-          size: 5,
+          size: 30,
           track_total_hits: true,
         },
         pretty: true,
@@ -63,7 +80,14 @@ export default function App() {
     },
     beatlesLove: {
       label:
-        "3️⃣ How many entries can be found in the index for songs by the Beatles that contain the word 'Love'?",
+        "3) How many entries can be found in the index for songs by the Beatles that contain the word 'Love'?",
+      explanation:
+        'We could technically do this without using bool, like "query_string": {"query": "(artists.name:Beatles) AND (name:Love)"}. But, we used bool because we have explicit control over each condition.' +
+        "We could change individual condition to be match_phrase/term if we wanted to, but this cannot be achieved with the single query string clause. Also, in terms of readability, bool is an advantage." +
+        "This query uses a `bool.must` combining two `query_string` queries: " +
+        "one for `artists.name:Beatles` and one for `name:Love`. " +
+        "For these single-word queries, quotes are not necessary. " +
+        "It searches for songs by Beatles where the song name contains 'Love'. ",
       data: {
         indexAction: "_search",
         indexName: "spotify_tracks",
@@ -72,12 +96,14 @@ export default function App() {
           query: {
             bool: {
               must: [
-                { query_string: { query: "artists.name:Beatles" } },
-                { query_string: { query: "name:Love" } },
+                {
+                  query_string: { query: "Beatles", fields: ["artists.name"] },
+                },
+                { query_string: { query: "Love", fields: ["name"] } },
               ],
             },
           },
-          size: 5,
+          size: 30,
           track_total_hits: true,
         },
         pretty: true,
@@ -86,6 +112,7 @@ export default function App() {
   };
 
   async function fetchResult(key) {
+    setActiveQuery(key);
     const response = await fetch(elasticUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=UTF-8" },
@@ -96,19 +123,14 @@ export default function App() {
     setResults((prev) => ({ ...prev, [key]: count }));
   }
 
-  const chartData = Object.entries(results)
-    .filter(([_, v]) => v !== null)
-    .map(([k, v]) => ({
-      name: queries[k].label.split("?")[0],
-      count: v,
-    }));
-
   return (
     <div className="container-fluid py-4">
       <div className="row">
         {/* Left Column: Questions */}
         <div className="col-md-4 mb-4">
-          <h1 className="mb-4 text-primary">🎵 KLens – Spotify Data Explorer</h1>
+          <h1 className="mb-4 text-primary">
+            🎵 KLens – Spotify Data Explorer
+          </h1>
           {Object.keys(queries).map((key) => (
             <div key={key} className="mb-3 card shadow-sm">
               <div className="card-body">
@@ -124,64 +146,102 @@ export default function App() {
           ))}
         </div>
 
-        {/* Right Column: Results & Visualization */}
+        {/* Right Column: One Query Result */}
         <div className="col-md-8">
-          <div className="mb-4">
-            <h2 className="mb-3">🧮 Query Results</h2>
-            {Object.entries(results).map(([key, value]) => (
-              <div
-                key={key}
-                className="mb-3 p-3 border-start border-4 border-primary bg-white rounded shadow-sm"
-              >
-                <strong>{queries[key].label}</strong>
-                <p className="mt-1">
-                  → <b>{value ?? "No data yet"}</b> entries found
-                </p>
+          {activeQuery ? (
+            <>
+              <div className="mb-4">
+                <h2 className="mb-3">Query Result</h2>
+                <div className="p-3 border-start border-4 border-primary bg-white rounded shadow-sm">
+                  <strong>{queries[activeQuery].label}</strong>
+                  <p className="mt-2 fs-5">
+                    → <b>{results[activeQuery] ?? "Loading..."}</b> entries
+                    found
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
 
-          <div className="mb-4">
-            <h2 className="mb-3">📘 Explanation</h2>
-            <ul className="list-group">
-              <li className="list-group-item">
-                <b>Query 1:</b> Searches all tracks where{" "}
-                <code>artists.name</code> contains "White Stripes".
-              </li>
-              <li className="list-group-item">
-                <b>Query 2:</b> Uses <code>bool.must</code> to find tracks where
-                both "Queen" and "David Bowie" appear as artists.
-              </li>
-              <li className="list-group-item">
-                <b>Query 3:</b> Finds tracks where <code>artists.name</code> is
-                "Beatles" and the song <code>name</code> contains "Love".
-              </li>
-            </ul>
-          </div>
+              <div className="mb-4">
+                <h2 className="mb-3">Explanation</h2>
+                <div className="p-3 bg-light border rounded">
+                  {queries[activeQuery].explanation}
+                </div>
+              </div>
 
-          <div>
-            <h2 className="mb-3">📊 Visualization</h2>
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, bottom: 10, left: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" hide />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar
-                    dataKey="count"
-                    fill="#0d6efd"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-muted">Run some queries to visualize results</p>
-            )}
-          </div>
+              <div className="mb-4">
+                <h2 className="mb-3">Request – dataForRemote</h2>
+                <pre className="bg-dark text-white p-3 rounded overflow-auto">
+                  {JSON.stringify(
+                    queries[activeQuery].data.dataForRemote,
+                    null,
+                    2
+                  )}
+                </pre>
+              </div>
+
+              <div>
+                <h2 className="mb-3">📊 Visualization – All Queries</h2>
+                {Object.values(results).some((v) => v !== null) ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={[
+                        {
+                          key: "whiteStripes",
+                          name: "White Stripes",
+                          count: results.whiteStripes || 0,
+                        },
+                        {
+                          key: "queenBowie",
+                          name: "Queen & Bowie",
+                          count: results.queenBowie || 0,
+                        },
+                        {
+                          key: "beatlesLove",
+                          name: "Beatles Love",
+                          count: results.beatlesLove || 0,
+                        },
+                      ]}
+                      margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 14, fill: "#555" }}
+                        interval={0}
+                      />
+                      <YAxis tick={{ fontSize: 14, fill: "#555" }} />
+                      <Tooltip
+                        cursor={{ fill: "rgba(0,0,0,0.05)" }}
+                        contentStyle={{ borderRadius: "8px", border: "none" }}
+                      />
+                      <Bar dataKey="count" radius={[10, 10, 0, 0]} barSize={50}>
+                        {[
+                          { key: "whiteStripes" },
+                          { key: "queenBowie" },
+                          { key: "beatlesLove" },
+                        ].map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              entry.key === activeQuery ? "#0d6efd" : "#adb5bd"
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-muted">
+                    Run some queries to see the chart
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-center text-muted mt-5">
+              <h5>👈 Select a query to view its details</h5>
+            </div>
+          )}
         </div>
       </div>
     </div>
