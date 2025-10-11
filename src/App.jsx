@@ -55,7 +55,7 @@ export default function App() {
         "2) How many entries can be found in the index for songs that Queen created together with David Bowie?",
       explanation:
         "We use `bool.must` to combine `term` and `match_phrase`. " +
-        "It finds songs where the artist name is exactly 'Queen' (using `term`) " +
+        "It finds songs where the artist name is exactly 'Queen' (using `term query on .keyword`) " +
         "and where 'David Bowie' appears (using `match_phrase`). " +
         "The reason why we used Queen as exact match is because of the fact that there might be other people having same first name Queen but different last name, we don't want to match that. While query_string was used for Queen, got to see an entry with Queen as first name but a different last name." +
         "Also match_phrase is used for David Bowie because using query string without quotes would yield unexpected results due to the fact that it will be considered as David OR Bowie.",
