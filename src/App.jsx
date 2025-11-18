@@ -2,6 +2,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Home from "./pages/Home.jsx";
 import Explorer from "./pages/Explorer.jsx";
+import Spotify from "./pages/Spotify.jsx";
 import About from "./pages/About.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
@@ -23,9 +24,12 @@ export default function App() {
             <NavLink to="/" className={navLinkClassName}>
               Home
             </NavLink>
-            <NavLink to="/spotify" className={navLinkClassName}>
-              Spotify
+            <NavLink to="/explorer" className={navLinkClassName}>
+              Explorer
             </NavLink>
+            {/* <NavLink to="/spotify" className={navLinkClassName}>
+              Spotify
+            </NavLink> */}
             <NavLink to="/about" className={navLinkClassName}>
               About
             </NavLink>
@@ -36,7 +40,8 @@ export default function App() {
       <main className="flex-grow-1 w-100">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/spotify" element={<Explorer />} />
+          <Route path="/explorer" element={<Explorer />} />
+          {/* <Route path="/spotify" element={<Spotify />} /> */}
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

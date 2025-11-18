@@ -25,16 +25,24 @@ export async function handler(event) {
       }
     );
 
-    const data = await response.json();
+    const raw = await response.text();
+    let data, statusCode;
+    try {
+      data = JSON.parse(raw);
+    } catch (jsonErr) {
+      // Not JSON, return as plain text
+      data = raw;
+    }
+    statusCode = data.status || 200;
 
     return {
-      statusCode: 200,
+      statusCode,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       },
-      body: JSON.stringify(data),
+      body: typeof data === "string" ? data : JSON.stringify(data),
     };
   } catch (err) {
     return {

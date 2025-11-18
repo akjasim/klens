@@ -15,7 +15,7 @@ export default function Home() {
           makes Kaiserslautern tick.
         </p>
         <div className="d-flex gap-3 justify-content-center">
-          <Link to="/spotify" className="btn btn-primary btn-lg">
+          <Link to="/explorer" className="btn btn-primary btn-lg">
             Start Exploring
           </Link>
           <Link to="/about" className="btn btn-outline-primary btn-lg">
