@@ -64,3 +64,14 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.history-panel {
+  width: 320px;
+  max-width: 100%;
+}
+
+@media (max-width: 991.98px) {
+  .history-panel {
+    width: 100%;
+  }
+}

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const elasticUrl = "/api/proxy";
+const HISTORY_STORAGE_KEY = "klensQueryHistory";
 
 function prettyJson(obj) {
   try {
@@ -16,15 +17,37 @@ export default function ExplorerForm() {
   const [requestType, setRequestType] = useState("GET");
   const [dataForRemoteText, setDataForRemoteText] = useState("{}");
   const [additionalPath, setAdditionalPath] = useState("");
+  const [saveAsName, setSaveAsName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [response, setResponse] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState("");
-
-  function parseDataForRemote() {
-    if (!dataForRemoteText || dataForRemoteText.trim() === "") return {};
+  const [history, setHistory] = useState(() => {
+    if (typeof window === "undefined") return [];
     try {
-      return JSON.parse(dataForRemoteText);
+      const stored = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      console.error("Failed to parse stored history", err);
+      return [];
+    }
+  });
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+    } catch (err) {
+      console.error("Failed to persist history", err);
+    }
+  }, [history]);
+
+  function parseDataForRemote(text) {
+    if (!text || text.trim() === "") return {};
+    try {
+      return JSON.parse(text);
     } catch (e) {
       throw new Error("Invalid JSON in dataForRemote: " + e.message);
     }
@@ -67,34 +90,50 @@ export default function ExplorerForm() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    await executeQuery();
+    setSaveAsName("");
+  }
+
+  function snapshotFormValues(overrides) {
+    return {
+      indexName: overrides?.indexName ?? indexName,
+      indexAction: overrides?.indexAction ?? indexAction,
+      requestType: overrides?.requestType ?? requestType,
+      dataForRemoteText:
+        overrides?.dataForRemoteText ?? dataForRemoteText ?? "{}",
+      additionalPath: overrides?.additionalPath ?? additionalPath,
+      saveAsName: overrides?.saveAsName ?? saveAsName,
+    };
+  }
+
+  async function executeQuery(overrides) {
+    const formValues = snapshotFormValues(overrides);
     setError(null);
     setResponse(null);
-
     let dataForRemote;
     try {
-      dataForRemote = parseDataForRemote();
+      dataForRemote = parseDataForRemote(formValues.dataForRemoteText);
     } catch (err) {
       setError(err.message);
       return;
     }
 
     const payload = {
-      indexAction,
-      requestType: requestType.toLowerCase(),
+      indexAction: formValues.indexAction,
+      requestType: formValues.requestType.toLowerCase(),
       pretty: true,
       dataForRemote,
     };
-    if (indexName && indexName.trim() !== "") {
-      payload.indexName = indexName;
+    if (formValues.indexName && formValues.indexName.trim() !== "") {
+      payload.indexName = formValues.indexName;
     }
 
-    if (additionalPath && additionalPath.trim() !== "") {
-      payload.additionalPath = additionalPath;
+    if (formValues.additionalPath && formValues.additionalPath.trim() !== "") {
+      payload.additionalPath = formValues.additionalPath;
     }
 
     try {
       setLoading(true);
-      console.log("payload", payload);
 
       const res = await fetch(elasticUrl, {
         method: "POST",
@@ -117,11 +156,59 @@ export default function ExplorerForm() {
       } else {
         setResponse({ type: "text", data: "", status: res.status });
       }
+
+      if (formValues.saveAsName && formValues.saveAsName.trim() !== "") {
+        const historyEntry = {
+          id:
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random()}`,
+          timestamp: new Date().toISOString(),
+
+          fields: {
+            indexName: formValues.indexName,
+            indexAction: formValues.indexAction,
+            requestType: formValues.requestType,
+            dataForRemoteText: formValues.dataForRemoteText,
+            additionalPath: formValues.additionalPath,
+            saveAsName: formValues.saveAsName,
+          },
+        };
+
+        setHistory((prev) => [historyEntry, ...prev].slice(0, 25));
+      }
     } catch (err) {
       setError(err.message || "Request failed");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleHistoryRun(entry) {
+    if (!entry?.fields) return;
+
+    const f = entry.fields;
+
+    setIndexName(f.indexName || "");
+    setIndexAction(f.indexAction || "");
+    setRequestType(f.requestType || "GET");
+    setDataForRemoteText(f.dataForRemoteText || "{}");
+    setAdditionalPath(f.additionalPath || "");
+    setSaveAsName("");
+
+    await executeQuery({
+      indexName: f.indexName,
+      indexAction: f.indexAction,
+      requestType: f.requestType,
+      dataForRemoteText: f.dataForRemoteText,
+      additionalPath: f.additionalPath,
+      saveAsName: "", // force disabled saving
+    });
+  }
+
+  function handleDeleteHistory(entryId, event) {
+    event?.stopPropagation();
+    setHistory((prev) => prev.filter((item) => item.id !== entryId));
   }
 
   return (
@@ -204,6 +291,19 @@ export default function ExplorerForm() {
               />
             </div>
 
+            <div className="d-flex align-items-center mb-2">
+              <div style={{ width: 170 }} className="text-white-50">
+                saveAsName (optional)
+              </div>
+              <input
+                className="form-control form-control-sm"
+                value={saveAsName}
+                onChange={(e) => setSaveAsName(e.target.value)}
+                placeholder="My Query Name"
+                style={{ maxWidth: 420 }}
+              />
+            </div>
+
             <div className="d-flex gap-2 mt-3">
               <button
                 className="btn btn-secondary btn-sm"
@@ -240,60 +340,152 @@ export default function ExplorerForm() {
           </div>
         </form>
 
-        <div>
-          <div className="d-flex flex-wrap align-items-center justify-content-between mb-2 gap-2">
-            <h4 className="mb-0">Response</h4>
-            {response && (
+        <div className="d-flex flex-column flex-lg-row gap-3 align-items-stretch">
+          <div
+            className="flex-grow-1 d-flex flex-column"
+            style={{ height: "420px" }}
+          >
+            <div className="d-flex flex-wrap align-items-center justify-content-between mb-2 gap-2">
+              <h4 className="mb-0">Response</h4>
               <div className="d-flex align-items-center gap-3 flex-wrap">
-                {response.status && (
+                {response?.status && (
                   <span className="text-muted small">
                     Status: {response.status}
                   </span>
                 )}
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
                     onClick={handleCopyResponse}
+                    disabled={!response}
                   >
                     <span role="img" aria-label="Copy">
                       📋
                     </span>
                     Copy
                   </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => setHistoryOpen((prev) => !prev)}
+                    disabled={history.length === 0}
+                  >
+                    {historyOpen ? "Hide History" : "Show History"}
+                  </button>
                   {copyFeedback && (
                     <span className="small text-success">{copyFeedback}</span>
                   )}
                 </div>
               </div>
-            )}
+            </div>
+            <div className="bg-light border rounded p-3 flex-grow-1 overflow-auto">
+              {response ? (
+                <>
+                  {response.type === "json" ? (
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        margin: 0,
+                      }}
+                    >
+                      {prettyJson(response.data)}
+                    </pre>
+                  ) : (
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        margin: 0,
+                      }}
+                    >
+                      {response.data}
+                    </pre>
+                  )}
+                </>
+              ) : (
+                <div className="text-muted">
+                  Response will appear here after submitting.
+                </div>
+              )}
+            </div>
           </div>
-          <div
-            className="bg-light border rounded p-3"
-            style={{ minHeight: 120 }}
-          >
-            {response ? (
-              <>
-                {response.type === "json" ? (
-                  <pre
-                    style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+          {historyOpen && (
+            <div
+              className="border rounded p-3 bg-white flex-shrink-0 d-flex flex-column history-panel"
+              style={{ height: "420px" }}
+            >
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">History</h5>
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm text-danger p-0"
+                    onClick={() => setHistory([])}
+                    disabled={history.length === 0}
+                    title="Delete all history"
                   >
-                    {prettyJson(response.data)}
-                  </pre>
-                ) : (
-                  <pre
-                    style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-                  >
-                    {response.data}
-                  </pre>
-                )}
-              </>
-            ) : (
-              <div className="text-muted">
-                Response will appear here after submitting.
+                    <span role="img" aria-label="Delete all">
+                      🗑️
+                    </span>
+                  </button>
+                  <span className="badge bg-secondary">{history.length}</span>
+                </div>
               </div>
-            )}
-          </div>
+              {history.length === 0 ? (
+                <p className="text-muted small mb-0">
+                  Run a query to populate history.
+                </p>
+              ) : (
+                <div className="list-group overflow-auto" style={{ flex: 1 }}>
+                  {history.map((entry) => (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      className="list-group-item list-group-item-action mb-2 text-start"
+                      onClick={() => handleHistoryRun(entry)}
+                    >
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div>
+                          <span className="fw-semibold small d-block">
+                            {entry.fields.saveAsName ||
+                              entry.fields.indexAction}
+                          </span>
+                          {entry.fields.indexName && (
+                            <span className="small text-truncate d-block">
+                              Index: {entry.fields.indexName}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-end">
+                          <span className="small text-muted d-block">
+                            {new Date(entry.timestamp).toLocaleTimeString()}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-link btn-sm text-danger p-0"
+                            onClick={(event) =>
+                              handleDeleteHistory(entry.id, event)
+                            }
+                          >
+                            <span role="img" aria-label="Delete entry">
+                              🗑️
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                      {entry.responsePreview && (
+                        <div className="history-preview small mt-1 text-truncate">
+                          {entry.responsePreview}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
