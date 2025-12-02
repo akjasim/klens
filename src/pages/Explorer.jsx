@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-
-const elasticUrl = "/api/proxy";
-const HISTORY_STORAGE_KEY = "klensQueryHistory";
+import { useTranslation } from "react-i18next";
+import esApi from "../api/elasticsearch";
+const HISTORY_STORAGE_KEY = "delensQueryHistory";
 
 function prettyJson(obj) {
   try {
@@ -12,6 +12,7 @@ function prettyJson(obj) {
 }
 
 export default function ExplorerForm() {
+  const { t } = useTranslation();
   const [indexName, setIndexName] = useState("inkar");
   const [indexAction, setIndexAction] = useState("_search");
   const [requestType, setRequestType] = useState("GET");
@@ -134,27 +135,19 @@ export default function ExplorerForm() {
 
     try {
       setLoading(true);
-
-      const res = await fetch(elasticUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=UTF-8",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      // Read body once, prefer JSON but fall back to text
-      const raw = await res.text();
-      if (raw) {
-        try {
-          const json = JSON.parse(raw);
-          setResponse({ type: "json", data: json, status: res.status });
-        } catch (parseErr) {
-          setResponse({ type: "text", data: raw, status: res.status });
-        }
+      const proxyRes = await esApi.postToProxy(payload);
+      if (proxyRes.isJson) {
+        setResponse({
+          type: "json",
+          data: proxyRes.data,
+          status: proxyRes.status,
+        });
       } else {
-        setResponse({ type: "text", data: "", status: res.status });
+        setResponse({
+          type: "text",
+          data: proxyRes.data,
+          status: proxyRes.status,
+        });
       }
 
       if (formValues.saveAsName && formValues.saveAsName.trim() !== "") {
@@ -214,7 +207,7 @@ export default function ExplorerForm() {
   return (
     <div className="w-100 py-5 px-3">
       <div className="container-lg">
-        <h2 className="mb-4 text-primary fw-bold">Query Builder</h2>
+        <h2 className="mb-4 text-primary fw-bold">{t("explorerTitle")}</h2>
 
         <form onSubmit={handleSubmit} className="mb-4">
           <div
@@ -224,7 +217,7 @@ export default function ExplorerForm() {
             {/* Each field is a separate 'line' */}
             <div className="d-flex align-items-center mb-2">
               <div style={{ width: 170 }} className="text-white-50">
-                indexName
+                {t("indexName")}
               </div>
               <input
                 className="form-control form-control-sm"
@@ -236,7 +229,7 @@ export default function ExplorerForm() {
 
             <div className="d-flex align-items-center mb-2">
               <div style={{ width: 170 }} className="text-white-50">
-                indexAction
+                {t("indexAction")}
               </div>
               <input
                 className="form-control form-control-sm"
@@ -248,7 +241,7 @@ export default function ExplorerForm() {
 
             <div className="d-flex align-items-center mb-2">
               <div style={{ width: 170 }} className="text-white-50">
-                requestType
+                {t("requestType")}
               </div>
               <select
                 className="form-select form-select-sm"
@@ -263,7 +256,7 @@ export default function ExplorerForm() {
 
             <div className="d-flex align-items-start mb-2">
               <div style={{ width: 170 }} className="text-white-50">
-                dataForRemote
+                {t("dataForRemote")}
               </div>
               <textarea
                 value={dataForRemoteText}
@@ -280,7 +273,7 @@ export default function ExplorerForm() {
 
             <div className="d-flex align-items-center mb-2">
               <div style={{ width: 170 }} className="text-white-50">
-                additionalPath
+                {t("additionalPath")}
               </div>
               <input
                 className="form-control form-control-sm"
@@ -293,7 +286,7 @@ export default function ExplorerForm() {
 
             <div className="d-flex align-items-center mb-2">
               <div style={{ width: 170 }} className="text-white-50">
-                saveAsName (optional)
+                {t("saveAsNameOptional")}
               </div>
               <input
                 className="form-control form-control-sm"
@@ -310,14 +303,14 @@ export default function ExplorerForm() {
                 type="button"
                 onClick={formatDataForRemote}
               >
-                Format JSON
+                {t("formatJson")}
               </button>
               <button
                 className="btn btn-success btn-sm"
                 type="submit"
                 disabled={loading}
               >
-                {loading ? "Running…" : "Run"}
+                {loading ? t("running") : t("run")}
               </button>
               <button
                 type="button"
@@ -332,7 +325,7 @@ export default function ExplorerForm() {
                   setResponse(null);
                 }}
               >
-                Reset
+                {t("reset")}
               </button>
             </div>
 
@@ -346,11 +339,11 @@ export default function ExplorerForm() {
             style={{ height: "420px" }}
           >
             <div className="d-flex flex-wrap align-items-center justify-content-between mb-2 gap-2">
-              <h4 className="mb-0">Response</h4>
+              <h4 className="mb-0">{t("response")}</h4>
               <div className="d-flex align-items-center gap-3 flex-wrap">
                 {response?.status && (
                   <span className="text-muted small">
-                    Status: {response.status}
+                    {t("status")}: {response.status}
                   </span>
                 )}
                 <div className="d-flex align-items-center gap-2 flex-wrap">
@@ -363,7 +356,7 @@ export default function ExplorerForm() {
                     <span role="img" aria-label="Copy">
                       📋
                     </span>
-                    Copy
+                    {t("copy")}
                   </button>
                   <button
                     type="button"
@@ -371,7 +364,7 @@ export default function ExplorerForm() {
                     onClick={() => setHistoryOpen((prev) => !prev)}
                     disabled={history.length === 0}
                   >
-                    {historyOpen ? "Hide History" : "Show History"}
+                    {historyOpen ? t("hideHistory") : t("showHistory")}
                   </button>
                   {copyFeedback && (
                     <span className="small text-success">{copyFeedback}</span>
@@ -405,9 +398,7 @@ export default function ExplorerForm() {
                   )}
                 </>
               ) : (
-                <div className="text-muted">
-                  Response will appear here after submitting.
-                </div>
+                <div className="text-muted">{t("responsePlaceholder")}</div>
               )}
             </div>
           </div>
@@ -417,14 +408,14 @@ export default function ExplorerForm() {
               style={{ height: "420px" }}
             >
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0">History</h5>
+                <h5 className="mb-0">{t("history")}</h5>
                 <div className="d-flex align-items-center gap-2">
                   <button
                     type="button"
                     className="btn btn-link btn-sm text-danger p-0"
                     onClick={() => setHistory([])}
                     disabled={history.length === 0}
-                    title="Delete all history"
+                    title={t("deleteAllHistory")}
                   >
                     <span role="img" aria-label="Delete all">
                       🗑️

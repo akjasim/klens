@@ -26,12 +26,14 @@ export async function handler(event) {
     );
 
     const raw = await response.text();
-    let data, statusCode;
+    let data, statusCode, isJson;
     try {
       data = JSON.parse(raw);
+      isJson = true;
     } catch (jsonErr) {
       // Not JSON, return as plain text
       data = raw;
+      isJson = false;
     }
     statusCode = data.status || 200;
 
@@ -41,6 +43,7 @@ export async function handler(event) {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST,OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
+        "Content-Type": isJson ? "application/json" : "text/plain",
       },
       body: typeof data === "string" ? data : JSON.stringify(data),
     };

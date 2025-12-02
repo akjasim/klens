@@ -1,10 +1,13 @@
 import { NavLink, Route, Routes } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import "bootstrap/dist/css/bootstrap.min.css";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 import Home from "./pages/Home.jsx";
 import Explorer from "./pages/Explorer.jsx";
 import Spotify from "./pages/Spotify.jsx";
 import About from "./pages/About.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import InternetTimelineChart from "./pages/TimeSeries.jsx";
 
 const navLinkClassName = ({ isActive }) =>
   [
@@ -13,26 +16,32 @@ const navLinkClassName = ({ isActive }) =>
   ].join(" ");
 
 export default function App() {
+  const { t } = useTranslation();
+
   return (
     <div className="d-flex flex-column min-vh-100 bg-light">
       <header className="border-bottom bg-white shadow-sm">
         <div className="container d-flex flex-wrap align-items-center py-3 gap-3">
           <NavLink to="/" className="text-decoration-none">
-            <span className="fs-4 fw-bold text-primary">KLens</span>
+            <span className="fs-4 fw-bold text-primary">DELens</span>
           </NavLink>
-          <nav className="ms-auto d-flex gap-2">
+          <nav className="ms-auto d-flex align-items-center gap-2">
             <NavLink to="/" className={navLinkClassName}>
-              Home
+              {t("home")}
             </NavLink>
             <NavLink to="/explorer" className={navLinkClassName}>
-              Explorer
+              {t("explorer")}
             </NavLink>
             {/* <NavLink to="/spotify" className={navLinkClassName}>
               Spotify
             </NavLink> */}
-            <NavLink to="/about" className={navLinkClassName}>
-              About
+            <NavLink to="/time-series" className={navLinkClassName}>
+              {t("timeSeries")}
             </NavLink>
+            <NavLink to="/about" className={navLinkClassName}>
+              {t("about")}
+            </NavLink>
+            <LanguageSwitcher />
           </nav>
         </div>
       </header>
@@ -42,13 +51,14 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/explorer" element={<Explorer />} />
           {/* <Route path="/spotify" element={<Spotify />} /> */}
+          <Route path="/time-series" element={<InternetTimelineChart />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
       <footer className="bg-white border-top py-3 text-center text-muted small">
-        KLens © {new Date().getFullYear()}
+        DELens © {new Date().getFullYear()}
       </footer>
     </div>
   );

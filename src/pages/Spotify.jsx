@@ -1,4 +1,5 @@
 import { useState } from "react";
+import esApi from "../api/elasticsearch";
 import {
   BarChart,
   Bar,
@@ -17,8 +18,6 @@ export default function Explorer() {
     beatlesLove: null,
   });
   const [activeQuery, setActiveQuery] = useState(null);
-
-  const elasticUrl = "/api/proxy";
 
   const queries = {
     whiteStripes: {
@@ -112,14 +111,15 @@ export default function Explorer() {
 
   async function fetchResult(key) {
     setActiveQuery(key);
-    const response = await fetch(elasticUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=UTF-8" },
-      body: JSON.stringify(queries[key].data),
-    });
-    const json = await response.json();
-    const count = json?.hits?.total?.value || 0;
-    setResults((prev) => ({ ...prev, [key]: count }));
+    const proxyRes = await esApi.postToProxy(queries[key].data);
+    if (proxyRes.isJson) {
+      const json = proxyRes.data;
+      const count = json?.hits?.total?.value || 0;
+      setResults((prev) => ({ ...prev, [key]: count }));
+    } else {
+      // fallback: no JSON result, set zero
+      setResults((prev) => ({ ...prev, [key]: 0 }));
+    }
   }
 
   return (
