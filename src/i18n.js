@@ -55,6 +55,9 @@ const resources = {
       insightsExplanation:
         "Possible drivers include local policy changes, economic shifts, or demographic trends. Compare related indicators within the same",
       forContext: "for additional context.",
+      selected: "selected",
+      compareNote:
+        "Insights shown for first selected place. Compare multiple lines on the chart.",
 
       // Loading & Error States
       fetchingData: "Fetching time series data...",
@@ -166,6 +169,9 @@ const resources = {
       insightsExplanation:
         "Mögliche Treiber sind lokale politische Veränderungen, wirtschaftliche Verschiebungen oder demografische Trends. Vergleichen Sie verwandte Indikatoren innerhalb desselben",
       forContext: "für zusätzlichen Kontext.",
+      selected: "ausgewählt",
+      compareNote:
+        "Erkenntnisse für den ersten ausgewählten Ort. Vergleichen Sie mehrere Linien im Diagramm.",
 
       // Loading & Error States
       fetchingData: "Zeitreihendaten werden geladen...",
