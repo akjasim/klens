@@ -251,7 +251,7 @@ export default function TimeSeries() {
           yanchor: "top",
           showarrow: false,
           font: {
-            size: 80,
+            size: 120,
             color: "rgba(0, 0, 0, 0.08)",
             family: "Arial, sans-serif",
             weight: "bold",
