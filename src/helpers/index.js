@@ -13,3 +13,16 @@ export function convertESData(
     }))
     .sort((a, b) => a.year - b.year);
 }
+
+export function formatNumber(num) {
+  const absNum = Math.abs(num);
+  if (absNum >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(1) + "B";
+  } else if (absNum >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1) + "M";
+  } else if (absNum >= 1_000) {
+    return (num / 1_000).toFixed(1) + "K";
+  } else {
+    return num.toFixed(2);
+  }
+}

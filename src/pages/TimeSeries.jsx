@@ -8,6 +8,7 @@ import {
   fetchIndicatorsForPlace,
   fetchTimeSeriesData,
 } from "../api/elasticsearch";
+import { formatNumber } from "../helpers";
 
 export default function TimeSeries() {
   const { t } = useTranslation();
@@ -552,7 +553,7 @@ export default function TimeSeries() {
                               }
                             >
                               {totalChange >= 0 ? "↑" : "↓"}{" "}
-                              {totalChange.toFixed(2)} (
+                              {formatNumber(totalChange)} (
                               {totalChangePct.toFixed(1)}%)
                             </span>
                           </div>
@@ -560,7 +561,7 @@ export default function TimeSeries() {
                             <div className="mb-2">
                               <strong>{t("peak")}:</strong>{" "}
                               <span className="text-primary">
-                                {maxPoint.year} · {maxPoint.value.toFixed(2)}
+                                {maxPoint.year} · {formatNumber(maxPoint.value)}
                               </span>
                             </div>
                           )}
@@ -568,7 +569,7 @@ export default function TimeSeries() {
                             <div>
                               <strong>{t("low")}:</strong>{" "}
                               <span className="text-secondary">
-                                {minPoint.year} · {minPoint.value.toFixed(2)}
+                                {minPoint.year} · {formatNumber(minPoint.value)}
                               </span>
                             </div>
                           )}
@@ -578,7 +579,7 @@ export default function TimeSeries() {
                             <div className="mb-2">
                               <strong>{t("biggestRise")}:</strong>{" "}
                               <span className="text-success">
-                                +{biggestRise.delta.toFixed(2)} {t("in")}{" "}
+                                +{formatNumber(biggestRise.delta)} {t("in")}{" "}
                                 {biggestRise.year}
                               </span>
                             </div>
@@ -587,7 +588,7 @@ export default function TimeSeries() {
                             <div>
                               <strong>{t("sharpestDrop")}:</strong>{" "}
                               <span className="text-danger">
-                                {biggestDrop.delta.toFixed(2)} {t("in")}{" "}
+                                {formatNumber(biggestDrop.delta)} {t("in")}{" "}
                                 {biggestDrop.year}
                               </span>
                             </div>
