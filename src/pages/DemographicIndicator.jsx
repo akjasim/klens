@@ -262,9 +262,6 @@ export default function DemographicIndicator() {
       <div className="container-fluid py-5">
         {/* Header */}
         <div className="text-center mb-5">
-          <div style={{ marginBottom: "20px" }}>
-            <span style={{ fontSize: "3.5rem" }}>👥</span>
-          </div>
           <h1 className="fw-bold mb-3" style={{ fontSize: "2.5rem", color: "#2c3e50", letterSpacing: "-0.5px" }}>
             {t("demographicIndicatorTitle")}
           </h1>
@@ -363,7 +360,7 @@ export default function DemographicIndicator() {
                       margin: { l: 100, r: 40, t: 80, b: 180 },
                       annotations: [],
                       paper_bgcolor: "white",
-                      plot_bgcolor: "#f8f8f8",
+                      plot_bgcolor: "#fafafa",
                       updatemenus: [
                         {
                           x: 0,
