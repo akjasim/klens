@@ -8,6 +8,7 @@ import Spotify from "./pages/Spotify.jsx";
 import About from "./pages/About.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import InternetTimelineChart from "./pages/TimeSeries.jsx";
+import DemographicIndicator from "./pages/DemographicIndicator.jsx";
 
 const navLinkClassName = ({ isActive }) =>
   [
@@ -38,6 +39,9 @@ export default function App() {
             <NavLink to="/time-series" className={navLinkClassName}>
               {t("timeSeries")}
             </NavLink>
+            <NavLink to="/demographics" className={navLinkClassName}>
+              {t("demographics")}
+            </NavLink>
             <NavLink to="/about" className={navLinkClassName}>
               {t("about")}
             </NavLink>
@@ -52,6 +56,7 @@ export default function App() {
           <Route path="/explorer" element={<Explorer />} />
           {/* <Route path="/spotify" element={<Spotify />} /> */}
           <Route path="/time-series" element={<InternetTimelineChart />} />
+          <Route path="/demographics" element={<DemographicIndicator />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

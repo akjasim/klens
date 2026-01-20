@@ -9,6 +9,7 @@ const resources = {
       about: "About",
       explorer: "Explorer",
       timeSeries: "Time Series",
+      demographics: "Demographics",
       chart: "Chart",
       spotify: "Spotify",
 
@@ -76,6 +77,25 @@ const resources = {
       startExploring: "Start Exploring",
       learnMore: "Learn More",
 
+      // Demographic Indicator Page
+      demographicIndicatorTitle: "Demographic Indicator",
+      demographicIndicatorSubtitle:
+        "Explore Germany's population structure by age groups over time",
+      demographicIndicatorHelp:
+        "View how Germany's population composition has changed from 1995 to 2022, broken down by age groups. Watch the animation to see demographic shifts year by year.",
+      demographicChartTitle: "Population by Age Group",
+      demographicChartExplanation:
+        "This chart shows the distribution of Germany's population across different age groups, animated year by year. Changes in these groups reflect birth rates, mortality, and migration patterns.",
+      populationByAgeGroup: "Population by Age Group",
+      ageGroup: "Age Group",
+      population: "Population",
+      fetchingDemographicsData: "Fetching demographics data...",
+      latestYear: "Latest Year",
+      totalPopulation: "Total Population",
+      ageGroupsCount: "Age Groups",
+      timeRangeLabel: "Time Range",
+      totalDataPoints: "Total Data Points",
+
       // About Page
       aboutTitle: "About DELens",
       aboutLead:
@@ -120,6 +140,7 @@ const resources = {
       about: "Über",
       explorer: "Explorer",
       timeSeries: "Zeitreihen",
+      demographics: "Demografie",
       chart: "Diagramm",
       spotify: "Spotify",
 
@@ -186,6 +207,25 @@ const resources = {
         "Erkunden Sie reale Datensätze aus ganz Deutschland und verstehen Sie, was Deutschland bewegt.",
       startExploring: "Jetzt erkunden",
       learnMore: "Mehr erfahren",
+
+      // Demographic Indicator Page
+      demographicIndicatorTitle: "Demografischer Indikator",
+      demographicIndicatorSubtitle:
+        "Erkunden Sie Deutschlands Bevölkerungsstruktur nach Altersgruppen im Zeitverlauf",
+      demographicIndicatorHelp:
+        "Sehen Sie, wie sich Deutschlands Bevölkerungszusammensetzung von 1995 bis 2022 verändert hat, aufgeschlüsselt nach Altersgruppen. Sehen Sie sich die Animation an, um demografische Verschiebungen Jahr für Jahr zu verfolgen.",
+      demographicChartTitle: "Bevölkerung nach Altersgruppe",
+      demographicChartExplanation:
+        "Dieses Diagramm zeigt die Verteilung der deutschen Bevölkerung auf verschiedene Altersgruppen, animiert Jahr für Jahr. Änderungen in diesen Gruppen spiegeln Geburtsraten, Sterblichkeit und Migrationsmuster wider.",
+      populationByAgeGroup: "Bevölkerung nach Altersgruppe",
+      ageGroup: "Altersgruppe",
+      population: "Bevölkerung",
+      fetchingDemographicsData: "Demografiedaten werden geladen...",
+      latestYear: "Letztes Jahr",
+      totalPopulation: "Gesamtbevölkerung",
+      ageGroupsCount: "Altersgruppen",
+      timeRangeLabel: "Zeitraum",
+      totalDataPoints: "Gesamtdatenpunkte",
 
       // About Page
       aboutTitle: "Über DELens",
