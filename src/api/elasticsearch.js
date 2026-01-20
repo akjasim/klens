@@ -209,6 +209,179 @@ export async function fetchDemographicsData() {
   }
 }
 
+export async function fetchGenderData() {
+  const malePayload = {
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 100,
+      query: {
+        bool: {
+          must: [
+            { match: { "name.keyword": "Bundesrepublik Deutschland" } },
+            { match: { raumbezug: "Bund" } },
+            { match: { bereich: "Absolutzahlen" } },
+            { match: { indikator: "Bevölkerung männlich" } },
+          ],
+        },
+      },
+      sort: [{ zeitbezug: { order: "asc" } }],
+    },
+    indexName: "inkar",
+  };
+
+  const femalePayload = {
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 100,
+      query: {
+        bool: {
+          must: [
+            { match: { "name.keyword": "Bundesrepublik Deutschland" } },
+            { match: { raumbezug: "Bund" } },
+            { match: { bereich: "Absolutzahlen" } },
+            { match: { indikator: "Bevölkerung weiblich" } },
+          ],
+        },
+      },
+      sort: [{ zeitbezug: { order: "asc" } }],
+    },
+    indexName: "inkar",
+  };
+
+  try {
+    const [maleResult, femaleResult] = await Promise.all([
+      executeQuery(malePayload),
+      executeQuery(femalePayload),
+    ]);
+
+    const maleHits = maleResult?.hits?.hits || [];
+    const femaleHits = femaleResult?.hits?.hits || [];
+
+    // Transform into {year, gender, population} format
+    const allData = [];
+
+    maleHits.forEach((hit) => {
+      const source = hit._source;
+      allData.push({
+        year: parseInt(source.zeitbezug, 10),
+        gender: "Male",
+        population: parseFloat(source.wert || 0),
+      });
+    });
+
+    femaleHits.forEach((hit) => {
+      const source = hit._source;
+      allData.push({
+        year: parseInt(source.zeitbezug, 10),
+        gender: "Female",
+        population: parseFloat(source.wert || 0),
+      });
+    });
+
+    return allData;
+  } catch (err) {
+    console.error("Error fetching gender data:", err);
+    return [];
+  }
+}
+
+// Fetch total population (absolute numbers) for Germany (Bund)
+export async function fetchTotalPopulation() {
+  const payload = {
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 100,
+      query: {
+        bool: {
+          must: [
+            { match: { "name.keyword": "Bundesrepublik Deutschland" } },
+            { match: { raumbezug: "Bund" } },
+            { match: { bereich: "Absolutzahlen" } },
+            { match: { indikator: "Bevölkerung gesamt" } },
+          ],
+        },
+      },
+      sort: [{ zeitbezug: { order: "asc" } }],
+    },
+    indexName: "inkar",
+  };
+
+  try {
+    const result = await executeQuery(payload);
+    const hits = result?.hits?.hits || [];
+    return hits.map((hit) => ({
+      year: parseInt(hit._source?.zeitbezug, 10),
+      population: parseFloat(hit._source?.wert || 0),
+    }));
+  } catch (err) {
+    console.error("Error fetching total population:", err);
+    return [];
+  }
+}
+
+export async function fetchUrbanizationData() {
+  try {
+    // Get all Bundesländer
+    const allBundesländer = await fetchRaumbezugTerms();
+
+    // Fetch population data for each Bundesland
+    const promises = allBundesländer.map((bundesland) => {
+      const payload = {
+        indexAction: "_search",
+        requestType: "post",
+        pretty: true,
+        dataForRemote: {
+          size: 100,
+          query: {
+            bool: {
+              must: [
+                { match: { raumbezug: bundesland } },
+                { match: { bereich: "Bevölkerung" } },
+                { match: { indikator: "Gesamtbevölkerung" } },
+              ],
+            },
+          },
+          sort: [{ zeitbezug: { order: "asc" } }],
+        },
+        indexName: "inkar",
+      };
+
+      return executeQuery(payload).then((result) => ({
+        bundesland,
+        hits: result?.hits?.hits || [],
+      }));
+    });
+
+    // Wait for all requests to complete
+    const allResults = await Promise.all(promises);
+
+    // Transform all results into a flat array
+    const allData = [];
+    allResults.forEach(({ bundesland, hits }) => {
+      hits.forEach((hit) => {
+        const source = hit._source;
+        allData.push({
+          year: parseInt(source.zeitbezug, 10),
+          bundesland: bundesland || source.raumbezug,
+          population: parseFloat(source.wert || 0),
+          indicatorName: source.indikator,
+        });
+      });
+    });
+
+    return allData;
+  } catch (err) {
+    console.error("Error fetching urbanization data:", err);
+    return [];
+  }
+}
+
 export default {
   postToProxy,
   executeQuery,
@@ -218,4 +391,7 @@ export default {
   fetchIndicatorsForPlace,
   fetchTimeSeriesData,
   fetchDemographicsData,
+  fetchGenderData,
+  fetchTotalPopulation,
+  fetchUrbanizationData,
 };

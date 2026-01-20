@@ -10,6 +10,7 @@ const resources = {
       explorer: "Explorer",
       timeSeries: "Time Series",
       demographics: "Demographics",
+      urbanization: "Urbanization",
       chart: "Chart",
       spotify: "Spotify",
 
@@ -95,6 +96,15 @@ const resources = {
       ageGroupsCount: "Age Groups",
       timeRangeLabel: "Time Range",
       totalDataPoints: "Total Data Points",
+
+      // Urbanization Page
+      urbanizationTitle: "Urbanization",
+      urbanizationSubtitle:
+        "Explore urbanization patterns across German states",
+      urbanizationHelp:
+        "View population distribution across Bundesländer over time",
+      urbanizationChartTitle: "Population by Bundesland",
+      fetchingUrbanizationData: "Fetching urbanization data...",
 
       // About Page
       aboutTitle: "About DELens",
@@ -226,6 +236,15 @@ const resources = {
       ageGroupsCount: "Altersgruppen",
       timeRangeLabel: "Zeitraum",
       totalDataPoints: "Gesamtdatenpunkte",
+
+      // Urbanization Page
+      urbanizationTitle: "Urbanisierung",
+      urbanizationSubtitle:
+        "Erkunden Sie Urbanisierungsmuster in deutschen Bundesländern",
+      urbanizationHelp:
+        "Sehen Sie die Bevölkerungsverteilung über Bundesländer im Laufe der Zeit",
+      urbanizationChartTitle: "Bevölkerung nach Bundesland",
+      fetchingUrbanizationData: "Urbanisierungsdaten werden abgerufen...",
 
       // About Page
       aboutTitle: "Über DELens",
