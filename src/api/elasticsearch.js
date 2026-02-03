@@ -416,6 +416,66 @@ export async function fetchAllStatesPopulation() {
   }
 }
 
+// Fetch internet speed for a single state
+export async function fetchStateInternetSpeed(stateName, speedType = "1000") {
+  const speedIndicators = {
+    1000: "Bandbreitenverfügbarkeit mindestens 1.000 Mbit/s",
+    100: "Bandbreitenverfügbarkeit mindestens 100 Mbit/s",
+    50: "Bandbreitenverfügbarkeit mindestens 50 Mbit/s",
+  };
+
+  const payload = {
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 100,
+      query: {
+        bool: {
+          must: [
+            { match: { "name.keyword": stateName } },
+            { match: { raumbezug: "Bundesländer" } },
+            { match: { bereich: "Verkehr und Erreichbarkeit" } },
+            { match: { indikator: speedIndicators[speedType] } },
+          ],
+        },
+      },
+      sort: [{ zeitbezug: { order: "asc" } }],
+    },
+    indexName: "inkar",
+  };
+
+  try {
+    const result = await executeQuery(payload);
+    const hits = result?.hits?.hits || [];
+    return hits.map((hit) => ({
+      year: parseInt(hit._source?.zeitbezug, 10),
+      speed: parseFloat(hit._source?.wert || 0),
+    }));
+  } catch (err) {
+    console.error(`Error fetching internet speed for ${stateName}:`, err);
+    return [];
+  }
+}
+
+// Fetch all states internet speed data
+export async function fetchAllStatesInternetSpeed(speedType = "1000") {
+  try {
+    const states = await fetchStateGeometry();
+    const promises = states.map((state) =>
+      fetchStateInternetSpeed(state.name, speedType).then((data) => ({
+        name: state.name,
+        data,
+      })),
+    );
+    const results = await Promise.all(promises);
+    return results;
+  } catch (err) {
+    console.error("Error fetching all states internet speed:", err);
+    return [];
+  }
+}
+
 export default {
   postToProxy,
   executeQuery,
@@ -430,4 +490,6 @@ export default {
   fetchStateGeometry,
   fetchStatePopulation,
   fetchAllStatesPopulation,
+  fetchStateInternetSpeed,
+  fetchAllStatesInternetSpeed,
 };

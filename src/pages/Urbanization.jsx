@@ -6,6 +6,7 @@ import { geoMercator } from "d3-geo";
 import {
   fetchStateGeometry,
   fetchAllStatesPopulation,
+  fetchAllStatesInternetSpeed,
 } from "../api/elasticsearch";
 import { formatNumber } from "../helpers";
 
@@ -20,6 +21,7 @@ export default function Urbanization() {
 
   const [stateData, setStateData] = useState([]);
   const [populationData, setPopulationData] = useState({});
+  const [internetSpeedData, setInternetSpeedData] = useState({});
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
   const [selectedYear, setSelectedYear] = useState(2020);
@@ -30,9 +32,11 @@ export default function Urbanization() {
   const [isFastForward, setIsFastForward] = useState(false);
   const [colorScheme, setColorScheme] = useState("heat"); // 'heat' or 'choropleth'
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [dataCategory, setDataCategory] = useState("population"); // 'population' or 'internetSpeed'
+  const [speedType, setSpeedType] = useState("1000"); // '1000', '100', or '50' for internet speed
   const animationIntervalRef = useRef(null);
 
-  // Fetch state geometry and population data
+  // Fetch state geometry, population data, and internet speed data
   useEffect(() => {
     const fetchData = async () => {
       setDataError(null);
@@ -45,15 +49,20 @@ export default function Urbanization() {
         // Fetch population data for all states
         const popData = await fetchAllStatesPopulation();
 
-        // Extract available years from population data
+        // Fetch internet speed data for all states (based on selected speedType)
+        const speedData = await fetchAllStatesInternetSpeed(speedType);
+
+        // Extract available years from the active data category
         const yearsSet = new Set();
-        popData.forEach((stateEntry) => {
+        const activeData = dataCategory === "population" ? popData : speedData;
+        activeData.forEach((stateEntry) => {
           stateEntry.data.forEach((entry) => yearsSet.add(entry.year));
         });
         const years = Array.from(yearsSet).sort((a, b) => a - b);
 
         setStateData(states);
         setPopulationData(popData);
+        setInternetSpeedData(speedData);
         setAvailableYears(years);
         if (years.length > 0) {
           setSelectedYear(years[0]); // Default to first year
@@ -67,17 +76,22 @@ export default function Urbanization() {
     };
 
     fetchData();
-  }, []);
+  }, [dataCategory, speedType]);
 
-  // Initialize Three.js scene with 3D Population Terrain
+  // Initialize Three.js scene with 3D Terrain (Population or Internet Speed)
   useEffect(() => {
     if (
       !mountRef.current ||
       stateData.length === 0 ||
-      populationData.length === 0 ||
+      (dataCategory === "population" && populationData.length === 0) ||
+      (dataCategory === "internetSpeed" && internetSpeedData.length === 0) ||
       availableYears.length === 0
     )
       return;
+
+    // Get the active dataset based on category
+    const activeData =
+      dataCategory === "population" ? populationData : internetSpeedData;
 
     // Save camera state before cleanup
     if (cameraRef.current) {
@@ -164,27 +178,34 @@ export default function Urbanization() {
       .scale(3000)
       .translate([0, 0]);
 
-    // Find population range for color scaling across ALL years for consistent color mapping
-    let minPop = Infinity;
-    let maxPop = -Infinity;
+    // Find data range for color scaling across ALL years for consistent color mapping
+    let minValue = Infinity;
+    let maxValue = -Infinity;
 
-    populationData.forEach((stateEntry) => {
+    activeData.forEach((stateEntry) => {
       stateEntry.data.forEach((yearData) => {
-        const population = yearData.population / 1000; // Convert to thousands
-        if (population > 0) {
-          minPop = Math.min(minPop, population);
-          maxPop = Math.max(maxPop, population);
+        let value;
+        if (dataCategory === "population") {
+          value = yearData.population / 1000; // Convert to thousands
+        } else {
+          value = yearData.speed; // Internet speed percentage
+        }
+        if (value > 0) {
+          minValue = Math.min(minValue, value);
+          maxValue = Math.max(maxValue, value);
         }
       });
     });
 
     console.log(
-      `Population range (thousands): ${minPop.toFixed(0)} - ${maxPop.toFixed(0)}`,
+      dataCategory === "population"
+        ? `Population range (thousands): ${minValue.toFixed(0)} - ${maxValue.toFixed(0)}`
+        : `Internet speed range (% availability): ${minValue.toFixed(1)}% - ${maxValue.toFixed(1)}%`,
     );
 
     // Color scale function - supports multiple schemes
-    const getColor = (population) => {
-      const normalized = (population - minPop) / (maxPop - minPop);
+    const getColor = (value) => {
+      const normalized = (value - minValue) / (maxValue - minValue);
 
       if (colorScheme === "heat") {
         // Yellow (0) → Orange (0.5) → Red (1)
@@ -210,34 +231,49 @@ export default function Urbanization() {
       }
     };
 
-    // Create 3D terrain for each state (PHASE 3 - Population = Height)
-    stateData.forEach((state, stateIndex) => {
+    // Create 3D terrain for each state (Data value = Height)
+    stateData.forEach((state) => {
       if (!state.geolocation || !state.geolocation.coordinates) {
         return;
       }
 
-      // Get population for this state (selected year) - convert to thousands
-      const popEntry = populationData.find((e) => e.name === state.name);
-      let population = 0;
-      if (popEntry && popEntry.data.length > 0) {
-        const yearData = popEntry.data.find((d) => d.year === selectedYear);
-        population =
-          (yearData ? yearData.population : popEntry.data[0].population || 0) /
-          1000; // Convert to thousands
+      // Get data for this state (selected year)
+      const dataEntry = activeData.find((e) => e.name === state.name);
+      let value = 0;
+      let displayValue = 0;
+
+      if (dataEntry && dataEntry.data.length > 0) {
+        const yearData = dataEntry.data.find((d) => d.year === selectedYear);
+        if (dataCategory === "population") {
+          value =
+            (yearData
+              ? yearData.population
+              : dataEntry.data[0].population || 0) / 1000; // Convert to thousands
+          displayValue = value * 1000; // For display purposes
+        } else {
+          value = yearData ? yearData.speed : dataEntry.data[0].speed || 0; // Internet speed percentage
+          displayValue = value;
+        }
       }
 
-      // Convert population (in thousands) to height - larger scale since numbers are in thousands
-      const heightScale = 0.05; // Much larger scale for thousands (0.00005 * 1000)
-      const terrainHeight = Math.max(3, population * heightScale);
+      // Convert value to height with appropriate scaling
+      let heightScale;
+      if (dataCategory === "population") {
+        heightScale = 0.05; // Scale for population in thousands
+      } else {
+        heightScale = 5; // Scale for internet speed percentage
+      }
+      const terrainHeight = Math.max(3, value * heightScale);
 
       // Calculate normalized value for debugging
-      const normalized = (population - minPop) / (maxPop - minPop);
+      const normalized = (value - minValue) / (maxValue - minValue);
 
-      // Color by population
-      const color = getColor(population);
+      // Color by value
+      const color = getColor(value);
 
+      const unit = dataCategory === "population" ? "k" : "%";
       console.log(
-        `${state.name}: ${population.toFixed(0)}k (norm: ${normalized.toFixed(3)}) → height ${terrainHeight.toFixed(1)}, color: rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`,
+        `${state.name}: ${value.toFixed(dataCategory === "population" ? 0 : 1)}${unit} (norm: ${normalized.toFixed(3)}) → height ${terrainHeight.toFixed(1)}, color: rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`,
       );
 
       // PHASE 2: Convert polygons to 3D shapes
@@ -314,7 +350,9 @@ export default function Urbanization() {
 
       mesh.userData = {
         name: state.name,
-        population: population,
+        value: value,
+        displayValue: displayValue,
+        dataCategory: dataCategory,
         color: color,
         area: area,
       };
@@ -447,10 +485,12 @@ export default function Urbanization() {
   }, [
     stateData,
     populationData,
+    internetSpeedData,
     selectedYear,
     availableYears,
     colorScheme,
     isFullscreen,
+    dataCategory,
   ]);
 
   // Play/pause animation effect
@@ -580,7 +620,11 @@ export default function Urbanization() {
                       className="fw-bold mb-0"
                       style={{ color: "#2c3e50", fontSize: "1.3rem" }}
                     >
-                      🏔️ 3D Population Terrain Map
+                      🏔️ 3D{" "}
+                      {dataCategory === "population"
+                        ? "Population"
+                        : "Internet Speed"}{" "}
+                      Terrain Map
                     </h5>
                     <p
                       style={{
@@ -590,7 +634,9 @@ export default function Urbanization() {
                         marginBottom: "0",
                       }}
                     >
-                      Height = Population | Color = Density
+                      {dataCategory === "population"
+                        ? "Height = Population | Color = Density"
+                        : "Height = Availability % | Color = Coverage Level"}
                     </p>
                   </div>
 
@@ -717,6 +763,147 @@ export default function Urbanization() {
                             flex: 1,
                           }}
                         >
+                          {/* Data Category Toggle */}
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              padding: "4px",
+                              background: "#f0f0f0",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            <button
+                              onClick={() => setDataCategory("population")}
+                              style={{
+                                padding: "8px 16px",
+                                borderRadius: "4px",
+                                border: "none",
+                                background:
+                                  dataCategory === "population"
+                                    ? "#28a745"
+                                    : "transparent",
+                                color:
+                                  dataCategory === "population"
+                                    ? "#fff"
+                                    : "#666",
+                                fontWeight:
+                                  dataCategory === "population"
+                                    ? "bold"
+                                    : "normal",
+                                cursor: "pointer",
+                                fontSize: "13px",
+                                transition: "all 0.3s ease",
+                              }}
+                              title="Population data"
+                            >
+                              Population
+                            </button>
+                            <button
+                              onClick={() => setDataCategory("internetSpeed")}
+                              style={{
+                                padding: "8px 16px",
+                                borderRadius: "4px",
+                                border: "none",
+                                background:
+                                  dataCategory === "internetSpeed"
+                                    ? "#17a2b8"
+                                    : "transparent",
+                                color:
+                                  dataCategory === "internetSpeed"
+                                    ? "#fff"
+                                    : "#666",
+                                fontWeight:
+                                  dataCategory === "internetSpeed"
+                                    ? "bold"
+                                    : "normal",
+                                cursor: "pointer",
+                                fontSize: "13px",
+                                transition: "all 0.3s ease",
+                              }}
+                              title="Internet speed data"
+                            >
+                              Internet Speed
+                            </button>
+                          </div>
+
+                          {/* Speed Tier Toggle (Internet Speed only) */}
+                          {dataCategory === "internetSpeed" && (
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                padding: "4px",
+                                background: "#f0f0f0",
+                                borderRadius: "6px",
+                              }}
+                            >
+                              <button
+                                onClick={() => setSpeedType("50")}
+                                style={{
+                                  padding: "8px 12px",
+                                  borderRadius: "4px",
+                                  border: "none",
+                                  background:
+                                    speedType === "50"
+                                      ? "#28a745"
+                                      : "transparent",
+                                  color: speedType === "50" ? "#fff" : "#666",
+                                  fontWeight:
+                                    speedType === "50" ? "bold" : "normal",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  transition: "all 0.3s ease",
+                                }}
+                                title="50 Mbit/s availability"
+                              >
+                                50 Mbit/s
+                              </button>
+                              <button
+                                onClick={() => setSpeedType("100")}
+                                style={{
+                                  padding: "8px 12px",
+                                  borderRadius: "4px",
+                                  border: "none",
+                                  background:
+                                    speedType === "100"
+                                      ? "#ffc107"
+                                      : "transparent",
+                                  color: speedType === "100" ? "#000" : "#666",
+                                  fontWeight:
+                                    speedType === "100" ? "bold" : "normal",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  transition: "all 0.3s ease",
+                                }}
+                                title="100 Mbit/s availability"
+                              >
+                                100 Mbit/s
+                              </button>
+                              <button
+                                onClick={() => setSpeedType("1000")}
+                                style={{
+                                  padding: "8px 12px",
+                                  borderRadius: "4px",
+                                  border: "none",
+                                  background:
+                                    speedType === "1000"
+                                      ? "#dc3545"
+                                      : "transparent",
+                                  color: speedType === "1000" ? "#fff" : "#666",
+                                  fontWeight:
+                                    speedType === "1000" ? "bold" : "normal",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  transition: "all 0.3s ease",
+                                }}
+                                title="1000 Mbit/s (1 Gbit/s) availability"
+                              >
+                                1000 Mbit/s
+                              </button>
+                            </div>
+                          )}
+
                           {/* Color Scheme Toggle */}
                           <div
                             style={{
@@ -864,6 +1051,7 @@ export default function Urbanization() {
                             value={availableYears.indexOf(selectedYear)}
                             onChange={(e) => {
                               setIsPlaying(false);
+                              setIsFastForward(false);
                               setSelectedYear(
                                 availableYears[parseInt(e.target.value)],
                               );
@@ -914,6 +1102,12 @@ export default function Urbanization() {
                     }}
                   >
                     <div style={{ fontSize: "0.9rem", color: "#555" }}>
+                      <strong>Category:</strong>{" "}
+                      {dataCategory === "population"
+                        ? "Population"
+                        : `${speedType} Mbit/s availability`}
+                    </div>
+                    <div style={{ fontSize: "0.9rem", color: "#555" }}>
                       <strong>Color Scale:</strong>{" "}
                       {colorScheme === "heat"
                         ? "Yellow (Low) → Red (High)"
@@ -963,10 +1157,21 @@ export default function Urbanization() {
               {hoveredState.name}
             </div>
             <div style={{ color: "#aaa", fontSize: "13px" }}>
-              Population:{" "}
-              <span style={{ color: "#fff", fontWeight: "500" }}>
-                {formatNumber(Math.round(hoveredState.population * 1000))}
-              </span>
+              {hoveredState.dataCategory === "population" ? (
+                <>
+                  Population:{" "}
+                  <span style={{ color: "#fff", fontWeight: "500" }}>
+                    {formatNumber(Math.round(hoveredState.displayValue))}
+                  </span>
+                </>
+              ) : (
+                <>
+                  {speedType} Mbit/s Availability:{" "}
+                  <span style={{ color: "#fff", fontWeight: "500" }}>
+                    {hoveredState.displayValue.toFixed(1)}%
+                  </span>
+                </>
+              )}
             </div>
           </div>
         )}
