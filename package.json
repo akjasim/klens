@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
+    "d3-geo": "^3.1.1",
+    "d3-scale-chromatic": "^3.1.0",
+    "earcut": "^3.0.2",
     "i18next": "^25.7.1",
     "plotly.js": "^3.3.0",
     "react": "^19.1.1",
@@ -18,7 +21,8 @@
     "react-i18next": "^16.3.5",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^7.9.6",
-    "recharts": "^3.2.1"
+    "recharts": "^3.2.1",
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

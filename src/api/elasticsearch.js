@@ -97,7 +97,7 @@ export async function fetchTimeSeriesData(
   raumbezug,
   placeName,
   bereich,
-  indicator
+  indicator,
 ) {
   if (!raumbezug || !placeName || !bereich || !indicator) {
     throw new Error("Missing required parameters");
@@ -325,59 +325,93 @@ export async function fetchTotalPopulation() {
   }
 }
 
-export async function fetchUrbanizationData() {
-  try {
-    // Get all Bundesländer
-    const allBundesländer = await fetchRaumbezugTerms();
-
-    // Fetch population data for each Bundesland
-    const promises = allBundesländer.map((bundesland) => {
-      const payload = {
-        indexAction: "_search",
-        requestType: "post",
-        pretty: true,
-        dataForRemote: {
-          size: 100,
-          query: {
-            bool: {
-              must: [
-                { match: { raumbezug: bundesland } },
-                { match: { bereich: "Bevölkerung" } },
-                { match: { indikator: "Gesamtbevölkerung" } },
-              ],
-            },
-          },
-          sort: [{ zeitbezug: { order: "asc" } }],
+// Fetch geometry for all 16 German states (Bundesländer)
+export async function fetchStateGeometry() {
+  const payload = {
+    indexName: "bundesamt_kartographie_bundeslaender",
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 16,
+      query: {
+        bool: {
+          must: [{ term: { administrative_ebene: 2 } }],
+          must_not: [{ wildcard: { "name.raw": "*Bodensee*" } }],
         },
-        indexName: "inkar",
-      };
+      },
+      sort: [{ beginn_lebenszeitintervall: { order: "desc" } }],
+      collapse: { field: "name.raw" },
+      _source: true,
+    },
+  };
 
-      return executeQuery(payload).then((result) => ({
-        bundesland,
-        hits: result?.hits?.hits || [],
-      }));
-    });
-
-    // Wait for all requests to complete
-    const allResults = await Promise.all(promises);
-
-    // Transform all results into a flat array
-    const allData = [];
-    allResults.forEach(({ bundesland, hits }) => {
-      hits.forEach((hit) => {
-        const source = hit._source;
-        allData.push({
-          year: parseInt(source.zeitbezug, 10),
-          bundesland: bundesland || source.raumbezug,
-          population: parseFloat(source.wert || 0),
-          indicatorName: source.indikator,
-        });
-      });
-    });
-
-    return allData;
+  try {
+    const result = await executeQuery(payload);
+    const hits = result?.hits?.hits || [];
+    return hits.map((hit) => ({
+      name: hit._source?.name,
+      geolocation: hit._source?.geolocation,
+      amtlicher_regionalschluessel: hit._source?.amtlicher_regionalschluessel,
+    }));
   } catch (err) {
-    console.error("Error fetching urbanization data:", err);
+    console.error("Error fetching state geometry:", err);
+    return [];
+  }
+}
+
+// Fetch population data for a specific state (Bundesland)
+export async function fetchStatePopulation(stateName) {
+  const payload = {
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 100,
+      query: {
+        bool: {
+          must: [
+            { match: { "name.keyword": stateName } },
+            { match: { raumbezug: "Bundesländer" } },
+            { match: { bereich: "Absolutzahlen" } },
+            { match: { indikator: "Bevölkerung gesamt" } },
+          ],
+        },
+      },
+      sort: [{ zeitbezug: { order: "asc" } }],
+    },
+    indexName: "inkar",
+  };
+
+  try {
+    const result = await executeQuery(payload);
+    const hits = result?.hits?.hits || [];
+    return hits.map((hit) => ({
+      year: parseInt(hit._source?.zeitbezug, 10),
+      population: parseFloat(hit._source?.wert || 0),
+    }));
+  } catch (err) {
+    console.error(`Error fetching population for ${stateName}:`, err);
+    return [];
+  }
+}
+
+// Fetch all states population data
+export async function fetchAllStatesPopulation() {
+  try {
+    const states = await fetchStateGeometry();
+    console.log("STATEs", states);
+    const promises = states.map((state) =>
+      fetchStatePopulation(state.name).then((data) => ({
+        name: state.name,
+        data,
+      })),
+    );
+    const results = await Promise.all(promises);
+    console.log("RESULTS", results);
+    return results;
+  } catch (err) {
+    console.error("Error fetching all states population:", err);
     return [];
   }
 }
@@ -393,5 +427,7 @@ export default {
   fetchDemographicsData,
   fetchGenderData,
   fetchTotalPopulation,
-  fetchUrbanizationData,
+  fetchStateGeometry,
+  fetchStatePopulation,
+  fetchAllStatesPopulation,
 };
