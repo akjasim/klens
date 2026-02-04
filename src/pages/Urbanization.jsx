@@ -158,7 +158,7 @@ export default function Urbanization() {
     controls.panSpeed = 1.0;
     controls.screenSpacePanning = true; // Pan in screen space, not world space
     controls.minDistance = 50; // Allow zooming much closer
-    controls.maxDistance = 1500; // Allow zooming much farther
+    controls.maxDistance = 1700; // Allow zooming much farther
     controls.minPolarAngle = 0; // Allow looking straight down
     controls.maxPolarAngle = Math.PI; // Allow looking from any angle
     controls.target.set(0, 0, 0); // Center of rotation
