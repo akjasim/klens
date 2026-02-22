@@ -476,6 +476,260 @@ export async function fetchAllStatesInternetSpeed(speedType = "1000") {
   }
 }
 
+// Fetch geometry for all Kreise (districts) in a specific state
+export async function fetchKreiseGeometryForState(stateName) {
+  const payload = {
+    indexName: "bundesamt_kartographie_kreise",
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 500,
+      query: {
+        bool: {
+          must: [{ term: { administrative_ebene: 4 } }],
+        },
+      },
+      _source: true,
+    },
+  };
+
+  try {
+    const result = await executeQuery(payload);
+    const hits = result?.hits?.hits || [];
+
+    // Filter Kreise that belong to the selected state by checking the first 2 digits of amtlicher_regionalschluessel
+    const stateGeometry = await fetchStateGeometry();
+    const stateRSKey = stateGeometry.find(
+      (s) => s.name === stateName,
+    )?.amtlicher_regionalschluessel;
+
+    if (!stateRSKey) {
+      console.warn(`Could not find state: ${stateName}`);
+      return [];
+    }
+
+    // Get the first 2 digits which represent the state code
+    const stateCode = stateRSKey.substring(0, 2);
+
+    return hits
+      .filter((hit) =>
+        hit._source?.amtlicher_regionalschluessel?.startsWith(stateCode),
+      )
+      .map((hit) => ({
+        name: hit._source?.name,
+        displayName: hit._source?.name,
+        geolocation: hit._source?.geolocation,
+        amtlicher_regionalschluessel: hit._source?.amtlicher_regionalschluessel,
+      }));
+  } catch (err) {
+    console.error(`Error fetching Kreise geometry for ${stateName}:`, err);
+    return [];
+  }
+}
+
+// Fetch population data for all Kreise in a state using aggregations
+export async function fetchAllKreisePopulationForState(stateName) {
+  try {
+    const kreise = await fetchKreiseGeometryForState(stateName);
+
+    if (kreise.length === 0) {
+      console.warn(`No Kreise found for state: ${stateName}`);
+      return [];
+    }
+
+    // Extract all possible Kreise names with variations (e.g., "Flensburg" and "Flensburg, Stadt")
+    // We'll fetch data for the actual names used in INKAR index
+    const kreiseNames = kreise.map((k) => k.name);
+
+    // All possible suffixes/prefixes for Kreise names
+    const kreiseSuffixes = [
+      "",
+      ", Stadt",
+      ", Landkreis",
+      "Landkreis ",
+      ", Freie und Hansestadt",
+      ", Hansestadt",
+      ", Klingenstadt",
+      ", Landeshauptstadt",
+      ", Stadt der FernUniversität",
+      ", Stadtkreis",
+      ", Wissenschaftsstadt",
+      ", documenta-Stadt",
+      ", kreisfreie Stadt",
+    ];
+
+    // Fetch population data for each Kreise
+    const promises = kreiseNames.map((kreiseName) => {
+      const nameVariations = kreiseSuffixes.map((suffix) => {
+        if (suffix.startsWith("Landkreis ")) {
+          return `${suffix}${kreiseName}`;
+        } else if (suffix) {
+          return `${kreiseName}${suffix}`;
+        } else {
+          return kreiseName;
+        }
+      });
+
+      // Return promise that tries each variation
+      return Promise.all(
+        nameVariations.map((nameVariation) => {
+          const payload = {
+            indexAction: "_search",
+            requestType: "post",
+            pretty: true,
+            dataForRemote: {
+              size: 100,
+              query: {
+                bool: {
+                  must: [
+                    { match: { "name.keyword": nameVariation } },
+                    { match: { raumbezug: "Kreise" } },
+                    { match: { bereich: "Absolutzahlen" } },
+                    { match: { indikator: "Bevölkerung gesamt" } },
+                  ],
+                },
+              },
+              sort: [{ zeitbezug: { order: "asc" } }],
+            },
+            indexName: "inkar",
+          };
+
+          return executeQuery(payload)
+            .then((result) => ({
+              variant: nameVariation,
+              hits: result?.hits?.hits || [],
+            }))
+            .catch(() => ({ variant: nameVariation, hits: [] }));
+        }),
+      ).then((results) => {
+        // Find the first successful result (non-empty hits)
+        const successfulResult = results.find((r) => r.hits.length > 0);
+        const hits = successfulResult ? successfulResult.hits : [];
+
+        return {
+          name: kreiseName,
+          data: hits.map((hit) => ({
+            year: parseInt(hit._source?.zeitbezug, 10),
+            population: parseFloat(hit._source?.wert || 0),
+          })),
+        };
+      });
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((r) => r.data.length > 0); // Only return Kreise with data
+  } catch (err) {
+    console.error(`Error fetching Kreise population for ${stateName}:`, err);
+    return [];
+  }
+}
+
+// Fetch internet speed data for all Kreise in a state
+export async function fetchAllKreiseInternetSpeedForState(
+  stateName,
+  speedType = "1000",
+) {
+  const speedIndicators = {
+    1000: "Bandbreitenverfügbarkeit mindestens 1.000 Mbit/s",
+    100: "Bandbreitenverfügbarkeit mindestens 100 Mbit/s",
+    50: "Bandbreitenverfügbarkeit mindestens 50 Mbit/s",
+  };
+
+  try {
+    const kreise = await fetchKreiseGeometryForState(stateName);
+
+    if (kreise.length === 0) {
+      console.warn(`No Kreise found for state: ${stateName}`);
+      return [];
+    }
+
+    const kreiseNames = kreise.map((k) => k.name);
+
+    // All possible suffixes/prefixes for Kreise names
+    const kreiseSuffixes = [
+      "",
+      ", Stadt",
+      ", Landkreis",
+      "Landkreis ",
+      ", Freie und Hansestadt",
+      ", Hansestadt",
+      ", Klingenstadt",
+      ", Landeshauptstadt",
+      ", Stadt der FernUniversität",
+      ", Stadtkreis",
+      ", Wissenschaftsstadt",
+      ", documenta-Stadt",
+      ", kreisfreie Stadt",
+    ];
+
+    // Fetch internet speed data for each Kreise with name variations
+    const promises = kreiseNames.map((kreiseName) => {
+      const nameVariations = kreiseSuffixes.map((suffix) => {
+        if (suffix.startsWith("Landkreis ")) {
+          return `${suffix}${kreiseName}`;
+        } else if (suffix) {
+          return `${kreiseName}${suffix}`;
+        } else {
+          return kreiseName;
+        }
+      });
+
+      return Promise.all(
+        nameVariations.map((nameVariation) => {
+          const payload = {
+            indexAction: "_search",
+            requestType: "post",
+            pretty: true,
+            dataForRemote: {
+              size: 100,
+              query: {
+                bool: {
+                  must: [
+                    { match: { "name.keyword": nameVariation } },
+                    { match: { raumbezug: "Kreise" } },
+                    { match: { bereich: "Verkehr und Erreichbarkeit" } },
+                    { match: { indikator: speedIndicators[speedType] } },
+                  ],
+                },
+              },
+              sort: [{ zeitbezug: { order: "asc" } }],
+            },
+            indexName: "inkar",
+          };
+
+          return executeQuery(payload)
+            .then((result) => ({
+              variant: nameVariation,
+              hits: result?.hits?.hits || [],
+            }))
+            .catch(() => ({ variant: nameVariation, hits: [] }));
+        }),
+      ).then((results) => {
+        const successfulResult = results.find((r) => r.hits.length > 0);
+        const hits = successfulResult ? successfulResult.hits : [];
+
+        return {
+          name: kreiseName,
+          data: hits.map((hit) => ({
+            year: parseInt(hit._source?.zeitbezug, 10),
+            speed: parseFloat(hit._source?.wert || 0),
+          })),
+        };
+      });
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((r) => r.data.length > 0);
+  } catch (err) {
+    console.error(
+      `Error fetching Kreise internet speed for ${stateName}:`,
+      err,
+    );
+    return [];
+  }
+}
+
 export default {
   postToProxy,
   executeQuery,
@@ -492,4 +746,7 @@ export default {
   fetchAllStatesPopulation,
   fetchStateInternetSpeed,
   fetchAllStatesInternetSpeed,
+  fetchKreiseGeometryForState,
+  fetchAllKreisePopulationForState,
+  fetchAllKreiseInternetSpeedForState,
 };
