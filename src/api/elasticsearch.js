@@ -476,6 +476,40 @@ export async function fetchAllStatesInternetSpeed(speedType = "1000") {
   }
 }
 
+// Fetch all valid Kreise names from the index using aggregation
+export async function fetchAllKreiseNames() {
+  const payload = {
+    indexName: "inkar",
+    indexAction: "_search",
+    requestType: "post",
+    dataForRemote: {
+      size: 0,
+      aggregations: {
+        onlyAggregation: {
+          terms: {
+            field: "name.keyword",
+            size: 800,
+          },
+        },
+      },
+      query: {
+        bool: {
+          must: [{ match: { raumbezug: "Kreise" } }],
+        },
+      },
+    },
+  };
+
+  try {
+    const result = await executeQuery(payload);
+    const buckets = result?.aggregations?.onlyAggregation?.buckets || [];
+    return buckets.map((b) => b.key).filter(Boolean);
+  } catch (err) {
+    console.error("Error fetching all Kreise names:", err);
+    return [];
+  }
+}
+
 // Fetch geometry for all Kreise (districts) in a specific state
 export async function fetchKreiseGeometryForState(stateName) {
   const payload = {
@@ -528,7 +562,7 @@ export async function fetchKreiseGeometryForState(stateName) {
   }
 }
 
-// Fetch population data for all Kreise in a state using aggregations
+// Fetch population data for all Kreise in a state
 export async function fetchAllKreisePopulationForState(stateName) {
   try {
     const kreise = await fetchKreiseGeometryForState(stateName);
@@ -538,9 +572,8 @@ export async function fetchAllKreisePopulationForState(stateName) {
       return [];
     }
 
-    // Extract all possible Kreise names with variations (e.g., "Flensburg" and "Flensburg, Stadt")
-    // We'll fetch data for the actual names used in INKAR index
-    const kreiseNames = kreise.map((k) => k.name);
+    // Fetch all valid Kreise names from the index
+    const validKreiseNames = await fetchAllKreiseNames();
 
     // All possible suffixes/prefixes for Kreise names
     const kreiseSuffixes = [
@@ -559,66 +592,63 @@ export async function fetchAllKreisePopulationForState(stateName) {
       ", kreisfreie Stadt",
     ];
 
-    // Fetch population data for each Kreise
-    const promises = kreiseNames.map((kreiseName) => {
-      const nameVariations = kreiseSuffixes.map((suffix) => {
-        if (suffix.startsWith("Landkreis ")) {
-          return `${suffix}${kreiseName}`;
-        } else if (suffix) {
-          return `${kreiseName}${suffix}`;
-        } else {
-          return kreiseName;
+    // For each geometry Kreise, find the best-matched name from valid Kreise names
+    const kreiseWithMatchedNames = kreise
+      .map((k) => {
+        // Try all suffixes to find a match in valid names
+        for (const suffix of kreiseSuffixes) {
+          let variant;
+          if (suffix.startsWith("Landkreis ")) {
+            variant = `${suffix}${k.name}`;
+          } else if (suffix) {
+            variant = `${k.name}${suffix}`;
+          } else {
+            variant = k.name;
+          }
+          if (validKreiseNames.includes(variant)) {
+            return { originalName: k.name, matchedName: variant };
+          }
         }
-      });
+        return null;
+      })
+      .filter(Boolean); // Remove Kreise with no match
 
-      // Return promise that tries each variation
-      return Promise.all(
-        nameVariations.map((nameVariation) => {
-          const payload = {
-            indexAction: "_search",
-            requestType: "post",
-            pretty: true,
-            dataForRemote: {
-              size: 100,
-              query: {
-                bool: {
-                  must: [
-                    { match: { "name.keyword": nameVariation } },
-                    { match: { raumbezug: "Kreise" } },
-                    { match: { bereich: "Absolutzahlen" } },
-                    { match: { indikator: "Bevölkerung gesamt" } },
-                  ],
-                },
-              },
-              sort: [{ zeitbezug: { order: "asc" } }],
+    // Fetch data for each matched Kreise (one request per Kreise)
+    const promises = kreiseWithMatchedNames.map((k) => {
+      const payload = {
+        indexAction: "_search",
+        requestType: "post",
+        pretty: true,
+        dataForRemote: {
+          size: 100,
+          query: {
+            bool: {
+              must: [
+                { match: { "name.keyword": k.matchedName } },
+                { match: { raumbezug: "Kreise" } },
+                { match: { bereich: "Absolutzahlen" } },
+                { match: { indikator: "Bevölkerung gesamt" } },
+              ],
             },
-            indexName: "inkar",
-          };
+          },
+          sort: [{ zeitbezug: { order: "asc" } }],
+        },
+        indexName: "inkar",
+      };
 
-          return executeQuery(payload)
-            .then((result) => ({
-              variant: nameVariation,
-              hits: result?.hits?.hits || [],
-            }))
-            .catch(() => ({ variant: nameVariation, hits: [] }));
-        }),
-      ).then((results) => {
-        // Find the first successful result (non-empty hits)
-        const successfulResult = results.find((r) => r.hits.length > 0);
-        const hits = successfulResult ? successfulResult.hits : [];
-
-        return {
-          name: kreiseName,
-          data: hits.map((hit) => ({
+      return executeQuery(payload)
+        .then((result) => ({
+          name: k.originalName,
+          data: (result?.hits?.hits || []).map((hit) => ({
             year: parseInt(hit._source?.zeitbezug, 10),
             population: parseFloat(hit._source?.wert || 0),
           })),
-        };
-      });
+        }))
+        .catch(() => ({ name: k.originalName, data: [] }));
     });
 
     const results = await Promise.all(promises);
-    return results.filter((r) => r.data.length > 0); // Only return Kreise with data
+    return results.filter((r) => r.data.length > 0);
   } catch (err) {
     console.error(`Error fetching Kreise population for ${stateName}:`, err);
     return [];
@@ -644,7 +674,8 @@ export async function fetchAllKreiseInternetSpeedForState(
       return [];
     }
 
-    const kreiseNames = kreise.map((k) => k.name);
+    // Fetch all valid Kreise names from the index
+    const validKreiseNames = await fetchAllKreiseNames();
 
     // All possible suffixes/prefixes for Kreise names
     const kreiseSuffixes = [
@@ -663,60 +694,59 @@ export async function fetchAllKreiseInternetSpeedForState(
       ", kreisfreie Stadt",
     ];
 
-    // Fetch internet speed data for each Kreise with name variations
-    const promises = kreiseNames.map((kreiseName) => {
-      const nameVariations = kreiseSuffixes.map((suffix) => {
-        if (suffix.startsWith("Landkreis ")) {
-          return `${suffix}${kreiseName}`;
-        } else if (suffix) {
-          return `${kreiseName}${suffix}`;
-        } else {
-          return kreiseName;
+    // For each geometry Kreise, find the best-matched name from valid Kreise names
+    const kreiseWithMatchedNames = kreise
+      .map((k) => {
+        // Try all suffixes to find a match in valid names
+        for (const suffix of kreiseSuffixes) {
+          let variant;
+          if (suffix.startsWith("Landkreis ")) {
+            variant = `${suffix}${k.name}`;
+          } else if (suffix) {
+            variant = `${k.name}${suffix}`;
+          } else {
+            variant = k.name;
+          }
+          if (validKreiseNames.includes(variant)) {
+            return { originalName: k.name, matchedName: variant };
+          }
         }
-      });
+        return null;
+      })
+      .filter(Boolean); // Remove Kreise with no match
 
-      return Promise.all(
-        nameVariations.map((nameVariation) => {
-          const payload = {
-            indexAction: "_search",
-            requestType: "post",
-            pretty: true,
-            dataForRemote: {
-              size: 100,
-              query: {
-                bool: {
-                  must: [
-                    { match: { "name.keyword": nameVariation } },
-                    { match: { raumbezug: "Kreise" } },
-                    { match: { bereich: "Verkehr und Erreichbarkeit" } },
-                    { match: { indikator: speedIndicators[speedType] } },
-                  ],
-                },
-              },
-              sort: [{ zeitbezug: { order: "asc" } }],
+    // Fetch data for each matched Kreise (one request per Kreise)
+    const promises = kreiseWithMatchedNames.map((k) => {
+      const payload = {
+        indexAction: "_search",
+        requestType: "post",
+        pretty: true,
+        dataForRemote: {
+          size: 100,
+          query: {
+            bool: {
+              must: [
+                { match: { "name.keyword": k.matchedName } },
+                { match: { raumbezug: "Kreise" } },
+                { match: { bereich: "Verkehr und Erreichbarkeit" } },
+                { match: { indikator: speedIndicators[speedType] } },
+              ],
             },
-            indexName: "inkar",
-          };
+          },
+          sort: [{ zeitbezug: { order: "asc" } }],
+        },
+        indexName: "inkar",
+      };
 
-          return executeQuery(payload)
-            .then((result) => ({
-              variant: nameVariation,
-              hits: result?.hits?.hits || [],
-            }))
-            .catch(() => ({ variant: nameVariation, hits: [] }));
-        }),
-      ).then((results) => {
-        const successfulResult = results.find((r) => r.hits.length > 0);
-        const hits = successfulResult ? successfulResult.hits : [];
-
-        return {
-          name: kreiseName,
-          data: hits.map((hit) => ({
+      return executeQuery(payload)
+        .then((result) => ({
+          name: k.originalName,
+          data: (result?.hits?.hits || []).map((hit) => ({
             year: parseInt(hit._source?.zeitbezug, 10),
             speed: parseFloat(hit._source?.wert || 0),
           })),
-        };
-      });
+        }))
+        .catch(() => ({ name: k.originalName, data: [] }));
     });
 
     const results = await Promise.all(promises);
