@@ -553,6 +553,7 @@ export async function fetchKreiseGeometryForState(stateName) {
       .map((hit) => ({
         name: hit._source?.name,
         displayName: hit._source?.name,
+        designation: hit._source?.bezeichnung,
         geolocation: hit._source?.geolocation,
         amtlicher_regionalschluessel: hit._source?.amtlicher_regionalschluessel,
       }));
