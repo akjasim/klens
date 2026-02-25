@@ -93,8 +93,25 @@ export default function DemographicIndicator() {
     ...new Set(demographicsData.map((d) => d.ageGroup)),
   ].sort((a, b) => ageGroupOrder.indexOf(a) - ageGroupOrder.indexOf(b));
 
-  // Define colors for age groups
-  const ageGroupColors = {
+  // Define colors for age groups (light → dark in ordered age groups)
+  const ageGroupGradient = [
+    "#e9f7ef",
+    "#d3f0df",
+    "#bde9cf",
+    "#a6e1be",
+    "#90daae",
+    "#7ad39e",
+    "#63cc8d",
+    "#4dc57d",
+    "#37be6d",
+  ];
+
+  const ageGroupColors = ageGroupOrder.reduce((acc, group, idx) => {
+    acc[group] = ageGroupGradient[idx] || "#2365d8";
+    return acc;
+  }, {});
+
+  const ageGroupPieColors = {
     "0-3": "#0d6efd",
     "3-6": "#198754",
     "6-18": "#dc3545",
@@ -536,7 +553,7 @@ export default function DemographicIndicator() {
       ),
       type: "pie",
       marker: {
-        colors: broadAgeGroups.map((ageGroup) => ageGroupColors[ageGroup]),
+        colors: broadAgeGroups.map((ageGroup) => ageGroupPieColors[ageGroup]),
       },
       textinfo: "label+percent",
       hoverinfo: "label+value+percent",
@@ -553,7 +570,7 @@ export default function DemographicIndicator() {
         ),
         type: "pie",
         marker: {
-          colors: broadAgeGroups.map((ageGroup) => ageGroupColors[ageGroup]),
+          colors: broadAgeGroups.map((ageGroup) => ageGroupPieColors[ageGroup]),
         },
         textinfo: "label+percent",
         hoverinfo: "label+value+percent",
