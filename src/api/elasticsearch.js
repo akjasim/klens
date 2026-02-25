@@ -127,7 +127,10 @@ export async function fetchTimeSeriesData(
   return result?.hits?.hits || [];
 }
 
-export async function fetchDemographicsData() {
+export async function fetchDemographicsData(
+  raumbezug = "Bund",
+  placeName = "Bundesrepublik Deutschland",
+) {
   // Age group indicators in German
   const ageGroupIndicators = [
     "Einwohner unter 3 Jahren",
@@ -166,8 +169,8 @@ export async function fetchDemographicsData() {
           query: {
             bool: {
               must: [
-                { match: { "name.keyword": "Bundesrepublik Deutschland" } },
-                { match: { raumbezug: "Bund" } },
+                { match: { "name.keyword": placeName } },
+                { match: { raumbezug } },
                 { match: { bereich: "Bevölkerung" } },
                 { match: { indikator: indicator } },
               ],
@@ -209,7 +212,10 @@ export async function fetchDemographicsData() {
   }
 }
 
-export async function fetchGenderData() {
+export async function fetchGenderData(
+  raumbezug = "Bund",
+  placeName = "Bundesrepublik Deutschland",
+) {
   const malePayload = {
     indexAction: "_search",
     requestType: "post",
@@ -219,8 +225,8 @@ export async function fetchGenderData() {
       query: {
         bool: {
           must: [
-            { match: { "name.keyword": "Bundesrepublik Deutschland" } },
-            { match: { raumbezug: "Bund" } },
+            { match: { "name.keyword": placeName } },
+            { match: { raumbezug } },
             { match: { bereich: "Absolutzahlen" } },
             { match: { indikator: "Bevölkerung männlich" } },
           ],
@@ -240,8 +246,8 @@ export async function fetchGenderData() {
       query: {
         bool: {
           must: [
-            { match: { "name.keyword": "Bundesrepublik Deutschland" } },
-            { match: { raumbezug: "Bund" } },
+            { match: { "name.keyword": placeName } },
+            { match: { raumbezug } },
             { match: { bereich: "Absolutzahlen" } },
             { match: { indikator: "Bevölkerung weiblich" } },
           ],
@@ -290,7 +296,10 @@ export async function fetchGenderData() {
 }
 
 // Fetch total population (absolute numbers) for Germany (Bund)
-export async function fetchTotalPopulation() {
+export async function fetchTotalPopulation(
+  raumbezug = "Bund",
+  placeName = "Bundesrepublik Deutschland",
+) {
   const payload = {
     indexAction: "_search",
     requestType: "post",
@@ -300,8 +309,8 @@ export async function fetchTotalPopulation() {
       query: {
         bool: {
           must: [
-            { match: { "name.keyword": "Bundesrepublik Deutschland" } },
-            { match: { raumbezug: "Bund" } },
+            { match: { "name.keyword": placeName } },
+            { match: { raumbezug } },
             { match: { bereich: "Absolutzahlen" } },
             { match: { indikator: "Bevölkerung gesamt" } },
           ],

@@ -4,6 +4,8 @@ import Plot from "react-plotly.js";
 import {
   fetchDemographicsData,
   fetchGenderData,
+  fetchPlaceNamesForRaumbezug,
+  fetchRaumbezugTerms,
   fetchTotalPopulation,
 } from "../api/elasticsearch";
 import { formatNumber } from "../helpers";
@@ -17,6 +19,42 @@ export default function DemographicIndicator() {
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
   const [showChart, setShowChart] = useState(false);
+  const [raumbezugOptions, setRaumbezugOptions] = useState([]);
+  const [placeOptions, setPlaceOptions] = useState([]);
+  const [selectedRaumbezug, setSelectedRaumbezug] = useState("Bund");
+  const [selectedPlace, setSelectedPlace] = useState(
+    "Bundesrepublik Deutschland",
+  );
+
+  useEffect(() => {
+    const loadRaumbezugOptions = async () => {
+      try {
+        const terms = await fetchRaumbezugTerms();
+        setRaumbezugOptions(terms);
+      } catch (err) {
+        console.error("Error fetching raumbezug terms:", err);
+      }
+    };
+
+    loadRaumbezugOptions();
+  }, []);
+
+  useEffect(() => {
+    const loadPlaceOptions = async () => {
+      if (!selectedRaumbezug) return;
+      try {
+        const names = await fetchPlaceNamesForRaumbezug(selectedRaumbezug);
+        setPlaceOptions(names);
+        if (!names.includes(selectedPlace)) {
+          setSelectedPlace(names[0] || "");
+        }
+      } catch (err) {
+        console.error("Error fetching place names:", err);
+      }
+    };
+
+    loadPlaceOptions();
+  }, [selectedRaumbezug]);
 
   // Fetch demographics data on mount
   useEffect(() => {
@@ -25,12 +63,17 @@ export default function DemographicIndicator() {
       setDataLoading(true);
       setShowChart(false);
 
+      if (!selectedRaumbezug || !selectedPlace) {
+        setDataLoading(false);
+        return;
+      }
+
       try {
         const [demoData, genderDataResult, totalPopulationResult] =
           await Promise.all([
-            fetchDemographicsData(),
-            fetchGenderData(),
-            fetchTotalPopulation(),
+            fetchDemographicsData(selectedRaumbezug, selectedPlace),
+            fetchGenderData(selectedRaumbezug, selectedPlace),
+            fetchTotalPopulation(selectedRaumbezug, selectedPlace),
           ]);
 
         // Data is already transformed with { year, ageGroup, population, indicatorName }
@@ -69,7 +112,7 @@ export default function DemographicIndicator() {
     };
 
     fetchData();
-  }, []);
+  }, [selectedRaumbezug, selectedPlace]);
 
   // Get unique years and age groups
   const years = [...new Set(demographicsData.map((d) => d.year))].sort(
@@ -756,6 +799,41 @@ export default function DemographicIndicator() {
                   >
                     📊 {t("demographicChartTitle")}
                   </h5>
+                  <div className="mt-3 d-flex flex-wrap gap-3">
+                    <div>
+                      <label className="form-label mb-1 small text-muted">
+                        Spatial reference
+                      </label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={selectedRaumbezug}
+                        onChange={(e) => setSelectedRaumbezug(e.target.value)}
+                      >
+                        {raumbezugOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label mb-1 small text-muted">
+                        Place
+                      </label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={selectedPlace}
+                        onChange={(e) => setSelectedPlace(e.target.value)}
+                        disabled={!placeOptions.length}
+                      >
+                        {placeOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Tabs */}
