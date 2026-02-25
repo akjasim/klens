@@ -37,7 +37,7 @@ export default function DemographicIndicator() {
         const transformedDemo = demoData
           .filter((d) => !isNaN(d.year) && !isNaN(d.population))
           .sort(
-            (a, b) => a.year - b.year || a.ageGroup.localeCompare(b.ageGroup)
+            (a, b) => a.year - b.year || a.ageGroup.localeCompare(b.ageGroup),
           );
 
         const transformedGender = genderDataResult
@@ -48,7 +48,7 @@ export default function DemographicIndicator() {
         const totalPopulationByYear = new Map(
           totalPopulationResult
             .filter((d) => !isNaN(d.year) && !isNaN(d.population))
-            .map((d) => [d.year, d.population])
+            .map((d) => [d.year, d.population]),
         );
 
         // Convert percentage shares into absolute counts (millions) using total population
@@ -73,7 +73,7 @@ export default function DemographicIndicator() {
 
   // Get unique years and age groups
   const years = [...new Set(demographicsData.map((d) => d.year))].sort(
-    (a, b) => a - b
+    (a, b) => a - b,
   );
 
   // Define age group order for consistent display
@@ -111,7 +111,7 @@ export default function DemographicIndicator() {
   // Helper to get population in millions for a given year and age group
   const getPopulationFor = (year, ageGroup) => {
     const found = demographicsData.find(
-      (d) => d.year === year && d.ageGroup === ageGroup
+      (d) => d.year === year && d.ageGroup === ageGroup,
     );
     return found ? found.populationMillions || 0 : 0;
   };
@@ -119,7 +119,7 @@ export default function DemographicIndicator() {
   // Pre-compute max population across all years for y-axis scaling
   const maxAgeGroupPopulationMillions = Math.max(
     0,
-    ...demographicsData.map((d) => d.populationMillions || 0)
+    ...demographicsData.map((d) => d.populationMillions || 0),
   );
   const yAxisMax = maxAgeGroupPopulationMillions * 1.1 || 1;
   const yAxisTick = 2;
@@ -149,7 +149,7 @@ export default function DemographicIndicator() {
     totalsByYear.length > 0
       ? totalsByYear.reduce(
           (acc, item) => (item.total > acc.total ? item : acc),
-          totalsByYear[0]
+          totalsByYear[0],
         )
       : { year: "–", total: 0 };
 
@@ -157,7 +157,7 @@ export default function DemographicIndicator() {
     totalsByYear.length > 0
       ? totalsByYear.reduce(
           (acc, item) => (item.total < acc.total ? item : acc),
-          totalsByYear[0]
+          totalsByYear[0],
         )
       : { year: "–", total: 0 };
 
@@ -176,14 +176,14 @@ export default function DemographicIndicator() {
   const highestSpike = deltas.length
     ? deltas.reduce(
         (acc, item) => (item.delta > acc.delta ? item : acc),
-        deltas[0]
+        deltas[0],
       )
     : { from: "–", to: "–", delta: 0 };
 
   const highestDrop = deltas.length
     ? deltas.reduce(
         (acc, item) => (item.delta < acc.delta ? item : acc),
-        deltas[0]
+        deltas[0],
       )
     : { from: "–", to: "–", delta: 0 };
 
@@ -195,7 +195,7 @@ export default function DemographicIndicator() {
             (d.populationMillions || 0) > (acc?.populationMillions || 0)
               ? d
               : acc,
-          null
+          null,
         )
     : null;
 
@@ -280,8 +280,8 @@ export default function DemographicIndicator() {
         ...years.map((year) =>
           demographicsData
             .filter((d) => d.year === year)
-            .reduce((sum, d) => sum + (d.populationMillions || 0), 0)
-        )
+            .reduce((sum, d) => sum + (d.populationMillions || 0), 0),
+        ),
       )
     : 0;
 
@@ -290,8 +290,8 @@ export default function DemographicIndicator() {
         ...years.map((year) =>
           demographicsData
             .filter((d) => d.year === year)
-            .reduce((sum, d) => sum + (d.populationMillions || 0), 0)
-        )
+            .reduce((sum, d) => sum + (d.populationMillions || 0), 0),
+        ),
       )
     : 0;
 
@@ -301,7 +301,7 @@ export default function DemographicIndicator() {
           demographicsData
             .filter((d) => d.year === year)
             .reduce((sum, d) => sum + (d.populationMillions || 0), 0) ===
-          highestPopulation
+          highestPopulation,
       )
     : null;
 
@@ -311,20 +311,20 @@ export default function DemographicIndicator() {
           demographicsData
             .filter((d) => d.year === year)
             .reduce((sum, d) => sum + (d.populationMillions || 0), 0) ===
-          lowestPopulation
+          lowestPopulation,
       )
     : null;
 
   // ============ GENDER CHART DATA ============
   const genderYears = [...new Set(genderData.map((d) => d.year))].sort(
-    (a, b) => a - b
+    (a, b) => a - b,
   );
 
   const genderCategories = ["Male", "Female"];
 
   const getGenderPopulation = (year, gender) => {
     const found = genderData.find(
-      (d) => d.year === year && d.gender === gender
+      (d) => d.year === year && d.gender === gender,
     );
     return found ? found.population || 0 : 0;
   };
@@ -332,7 +332,7 @@ export default function DemographicIndicator() {
   const maxGenderPopulation = Math.max(
     0,
     ...genderYears.map((y) => getGenderPopulation(y, "Male")),
-    ...genderYears.map((y) => getGenderPopulation(y, "Female"))
+    ...genderYears.map((y) => getGenderPopulation(y, "Female")),
   );
   // Fixed gender y-axis per request
   const genderYAxisMax = 43_000_000;
@@ -435,7 +435,7 @@ export default function DemographicIndicator() {
     genderTotalsByYear.length > 0
       ? genderTotalsByYear.reduce(
           (acc, item) => (item.total > acc.total ? item : acc),
-          genderTotalsByYear[0]
+          genderTotalsByYear[0],
         )
       : { year: "–", total: 0, male: 0, female: 0 };
 
@@ -443,7 +443,7 @@ export default function DemographicIndicator() {
     genderTotalsByYear.length > 0
       ? genderTotalsByYear.reduce(
           (acc, item) => (item.total < acc.total ? item : acc),
-          genderTotalsByYear[0]
+          genderTotalsByYear[0],
         )
       : { year: "–", total: 0, male: 0, female: 0 };
 
@@ -462,14 +462,14 @@ export default function DemographicIndicator() {
   const highestGenderSpike = genderDeltas.length
     ? genderDeltas.reduce(
         (acc, item) => (item.delta > acc.delta ? item : acc),
-        genderDeltas[0]
+        genderDeltas[0],
       )
     : { from: "–", to: "–", delta: 0 };
 
   const highestGenderDrop = genderDeltas.length
     ? genderDeltas.reduce(
         (acc, item) => (item.delta < acc.delta ? item : acc),
-        genderDeltas[0]
+        genderDeltas[0],
       )
     : { from: "–", to: "–", delta: 0 };
 
@@ -478,7 +478,7 @@ export default function DemographicIndicator() {
     {
       labels: genderCategories,
       values: genderCategories.map((gender) =>
-        getGenderPopulation(firstGenderYear, gender)
+        getGenderPopulation(firstGenderYear, gender),
       ),
       type: "pie",
       marker: {
@@ -495,11 +495,131 @@ export default function DemographicIndicator() {
       {
         labels: genderCategories,
         values: genderCategories.map((gender) =>
-          getGenderPopulation(year, gender)
+          getGenderPopulation(year, gender),
         ),
         type: "pie",
         marker: {
           colors: ["#0d6efd", "#dc3545"],
+        },
+        textinfo: "label+percent",
+        hoverinfo: "label+value+percent",
+      },
+    ],
+    layout: {
+      annotations: [
+        {
+          text: year.toString(),
+          xref: "paper",
+          yref: "paper",
+          x: 0.5,
+          y: 0.5,
+          xanchor: "center",
+          yanchor: "middle",
+          showarrow: false,
+          font: {
+            size: 160,
+            color: "rgba(0, 0, 0, 0.08)",
+            family: "Arial, sans-serif",
+            weight: "bold",
+          },
+        },
+      ],
+    },
+  }));
+
+  // ============ AGE GROUP PIE CHART ==========
+  const ageGroupPieTraces = [
+    {
+      labels: broadAgeGroups,
+      values: broadAgeGroups.map((ageGroup) =>
+        getPopulationFor(firstYear, ageGroup),
+      ),
+      type: "pie",
+      marker: {
+        colors: broadAgeGroups.map((ageGroup) => ageGroupColors[ageGroup]),
+      },
+      textinfo: "label+percent",
+      hoverinfo: "label+value+percent",
+    },
+  ];
+
+  const ageGroupPieFrames = years.map((year, yearIdx) => ({
+    name: `ageGroupPieFrame-${yearIdx}`,
+    data: [
+      {
+        labels: broadAgeGroups,
+        values: broadAgeGroups.map((ageGroup) =>
+          getPopulationFor(year, ageGroup),
+        ),
+        type: "pie",
+        marker: {
+          colors: broadAgeGroups.map((ageGroup) => ageGroupColors[ageGroup]),
+        },
+        textinfo: "label+percent",
+        hoverinfo: "label+value+percent",
+      },
+    ],
+    layout: {
+      annotations: [
+        {
+          text: year.toString(),
+          xref: "paper",
+          yref: "paper",
+          x: 0.5,
+          y: 0.5,
+          xanchor: "center",
+          yanchor: "middle",
+          showarrow: false,
+          font: {
+            size: 160,
+            color: "rgba(0, 0, 0, 0.08)",
+            family: "Arial, sans-serif",
+            weight: "bold",
+          },
+        },
+      ],
+    },
+  }));
+
+  // ============ WORKING CLASS PIE CHART ==========
+  const classBuckets = ["0-18", "18-65", "65+"];
+
+  const getClassPopulationForYear = (year) => {
+    const yearData = demographicsData.filter((d) => d.year === year);
+    const sumAges = (groups) =>
+      yearData
+        .filter((d) => groups.includes(d.ageGroup))
+        .reduce((sum, d) => sum + (d.populationMillions || 0), 0);
+
+    const nonWorking = sumAges(["0-3", "3-6", "6-18"]);
+    const working = sumAges(["18-25", "25-30", "30-50", "50-65"]);
+    const retired = sumAges(["65-75", "75+"]);
+
+    return [nonWorking, working, retired];
+  };
+
+  const classPieTraces = [
+    {
+      labels: classBuckets,
+      values: getClassPopulationForYear(firstYear),
+      type: "pie",
+      marker: {
+        colors: ["#6c757d", "#198754", "#fd7e14"],
+      },
+      textinfo: "label+percent",
+      hoverinfo: "label+value+percent",
+    },
+  ];
+
+  const classPieFrames = years.map((year, yearIdx) => ({
+    name: `classPieFrame-${yearIdx}`,
+    data: [
+      {
+        labels: classBuckets,
+        values: getClassPopulationForYear(year),
+        type: "pie",
+        marker: {
+          colors: ["#6c757d", "#198754", "#fd7e14"],
         },
         textinfo: "label+percent",
         hoverinfo: "label+value+percent",
@@ -880,6 +1000,210 @@ export default function DemographicIndicator() {
                         style={{ width: "100%", height: "700px" }}
                         useResizeHandler={true}
                       />
+                      <div className="row g-4 mt-2">
+                        <div className="col-lg-6">
+                          <Plot
+                            data={ageGroupPieTraces}
+                            layout={{
+                              title: {
+                                text: "Age Group Distribution (millions)",
+                                font: {
+                                  size: 18,
+                                  color: "#2c3e50",
+                                  family: "Arial, sans-serif",
+                                },
+                                x: 0.5,
+                                xanchor: "center",
+                              },
+                              margin: { l: 60, r: 60, t: 80, b: 60 },
+                              annotations: [
+                                {
+                                  text: latestYear.toString(),
+                                  xref: "paper",
+                                  yref: "paper",
+                                  x: 0.5,
+                                  y: 0.5,
+                                  xanchor: "center",
+                                  yanchor: "middle",
+                                  showarrow: false,
+                                  font: {
+                                    size: 160,
+                                    color: "rgba(0, 0, 0, 0.08)",
+                                    family: "Arial, sans-serif",
+                                    weight: "bold",
+                                  },
+                                },
+                              ],
+                              paper_bgcolor: "white",
+                              updatemenus: [
+                                {
+                                  x: 0,
+                                  y: 0,
+                                  yanchor: "top",
+                                  xanchor: "left",
+                                  showactive: false,
+                                  direction: "left",
+                                  type: "buttons",
+                                  pad: { t: 50, r: 10 },
+                                  buttons: [
+                                    {
+                                      method: "animate",
+                                      args: [
+                                        null,
+                                        {
+                                          mode: "immediate",
+                                          fromcurrent: true,
+                                          transition: { duration: 300 },
+                                          frame: {
+                                            duration: 800,
+                                            redraw: true,
+                                          },
+                                        },
+                                      ],
+                                      label: "▶︎",
+                                    },
+                                    {
+                                      method: "animate",
+                                      args: [
+                                        [null],
+                                        {
+                                          mode: "immediate",
+                                          transition: { duration: 0 },
+                                          frame: { duration: 0, redraw: false },
+                                        },
+                                      ],
+                                      label: "||",
+                                    },
+                                  ],
+                                },
+                              ],
+                              sliders: [
+                                {
+                                  active: years.length - 1,
+                                  pad: { l: 100, t: 55 },
+                                  steps: years.map((year, idx) => ({
+                                    label: year.toString(),
+                                    method: "animate",
+                                    args: [
+                                      [`ageGroupPieFrame-${idx}`],
+                                      {
+                                        mode: "immediate",
+                                        frame: { duration: 0, redraw: true },
+                                        transition: { duration: 0 },
+                                      },
+                                    ],
+                                  })),
+                                },
+                              ],
+                            }}
+                            frames={ageGroupPieFrames}
+                            config={{ responsive: true, displayModeBar: true }}
+                            style={{ width: "100%", height: "650px" }}
+                            useResizeHandler={true}
+                          />
+                        </div>
+                        <div className="col-lg-6">
+                          <Plot
+                            data={classPieTraces}
+                            layout={{
+                              title: {
+                                text: "Working Class Breakdown (millions)",
+                                font: {
+                                  size: 18,
+                                  color: "#2c3e50",
+                                  family: "Arial, sans-serif",
+                                },
+                                x: 0.5,
+                                xanchor: "center",
+                              },
+                              margin: { l: 60, r: 60, t: 80, b: 60 },
+                              annotations: [
+                                {
+                                  text: latestYear.toString(),
+                                  xref: "paper",
+                                  yref: "paper",
+                                  x: 0.5,
+                                  y: 0.5,
+                                  xanchor: "center",
+                                  yanchor: "middle",
+                                  showarrow: false,
+                                  font: {
+                                    size: 160,
+                                    color: "rgba(0, 0, 0, 0.08)",
+                                    family: "Arial, sans-serif",
+                                    weight: "bold",
+                                  },
+                                },
+                              ],
+                              paper_bgcolor: "white",
+                              updatemenus: [
+                                {
+                                  x: 0,
+                                  y: 0,
+                                  yanchor: "top",
+                                  xanchor: "left",
+                                  showactive: false,
+                                  direction: "left",
+                                  type: "buttons",
+                                  pad: { t: 50, r: 10 },
+                                  buttons: [
+                                    {
+                                      method: "animate",
+                                      args: [
+                                        null,
+                                        {
+                                          mode: "immediate",
+                                          fromcurrent: true,
+                                          transition: { duration: 300 },
+                                          frame: {
+                                            duration: 800,
+                                            redraw: true,
+                                          },
+                                        },
+                                      ],
+                                      label: "▶︎",
+                                    },
+                                    {
+                                      method: "animate",
+                                      args: [
+                                        [null],
+                                        {
+                                          mode: "immediate",
+                                          transition: { duration: 0 },
+                                          frame: { duration: 0, redraw: false },
+                                        },
+                                      ],
+                                      label: "||",
+                                    },
+                                  ],
+                                },
+                              ],
+                              sliders: [
+                                {
+                                  active: years.length - 1,
+                                  pad: { l: 100, t: 55 },
+                                  steps: years.map((year, idx) => ({
+                                    label: year.toString(),
+                                    method: "animate",
+                                    args: [
+                                      [`classPieFrame-${idx}`],
+                                      {
+                                        mode: "immediate",
+                                        frame: { duration: 0, redraw: true },
+                                        transition: { duration: 0 },
+                                      },
+                                    ],
+                                  })),
+                                },
+                              ],
+                            }}
+                            frames={classPieFrames}
+                            config={{ responsive: true, displayModeBar: true }}
+                            style={{ width: "100%", height: "650px" }}
+                            useResizeHandler={true}
+                          />
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -1103,102 +1427,115 @@ export default function DemographicIndicator() {
                           useResizeHandler={true}
                         />
                       ) : (
-                        <Plot
-                          data={genderPieTraces}
-                          layout={{
-                            title: {
-                              text: "Population by Gender (millions)",
-                              font: {
-                                size: 18,
-                                color: "#2c3e50",
-                                family: "Arial, sans-serif",
-                              },
-                              x: 0.5,
-                              xanchor: "center",
-                            },
-                            margin: { l: 80, r: 80, t: 80, b: 80 },
-                            annotations: [
-                              {
-                                text: latestGenderYear.toString(),
-                                xref: "paper",
-                                yref: "paper",
-                                x: 0.5,
-                                y: 0.5,
-                                xanchor: "center",
-                                yanchor: "middle",
-                                showarrow: false,
-                                font: {
-                                  size: 160,
-                                  color: "rgba(0, 0, 0, 0.08)",
-                                  family: "Arial, sans-serif",
-                                  weight: "bold",
-                                },
-                              },
-                            ],
-                            paper_bgcolor: "white",
-                            updatemenus: [
-                              {
-                                x: 0,
-                                y: 0,
-                                yanchor: "top",
-                                xanchor: "left",
-                                showactive: false,
-                                direction: "left",
-                                type: "buttons",
-                                pad: { t: 50, r: 10 },
-                                buttons: [
-                                  {
-                                    method: "animate",
-                                    args: [
-                                      null,
-                                      {
-                                        mode: "immediate",
-                                        fromcurrent: true,
-                                        transition: { duration: 300 },
-                                        frame: { duration: 800, redraw: true },
-                                      },
-                                    ],
-                                    label: "▶︎",
+                        <div className="row g-4">
+                          <div className="col-lg-6">
+                            <Plot
+                              data={genderPieTraces}
+                              layout={{
+                                title: {
+                                  text: "Population by Gender (millions)",
+                                  font: {
+                                    size: 18,
+                                    color: "#2c3e50",
+                                    family: "Arial, sans-serif",
                                   },
+                                  x: 0.5,
+                                  xanchor: "center",
+                                },
+                                margin: { l: 60, r: 60, t: 80, b: 60 },
+                                annotations: [
                                   {
-                                    method: "animate",
-                                    args: [
-                                      [null],
-                                      {
-                                        mode: "immediate",
-                                        transition: { duration: 0 },
-                                        frame: { duration: 0, redraw: false },
-                                      },
-                                    ],
-                                    label: "||",
+                                    text: latestGenderYear.toString(),
+                                    xref: "paper",
+                                    yref: "paper",
+                                    x: 0.5,
+                                    y: 0.5,
+                                    xanchor: "center",
+                                    yanchor: "middle",
+                                    showarrow: false,
+                                    font: {
+                                      size: 160,
+                                      color: "rgba(0, 0, 0, 0.08)",
+                                      family: "Arial, sans-serif",
+                                      weight: "bold",
+                                    },
                                   },
                                 ],
-                              },
-                            ],
-                            sliders: [
-                              {
-                                active: genderYears.length - 1,
-                                pad: { l: 100, t: 55 },
-                                steps: genderYears.map((year, idx) => ({
-                                  label: year.toString(),
-                                  method: "animate",
-                                  args: [
-                                    [`genderPieFrame-${idx}`],
-                                    {
-                                      mode: "immediate",
-                                      frame: { duration: 0, redraw: true },
-                                      transition: { duration: 0 },
-                                    },
-                                  ],
-                                })),
-                              },
-                            ],
-                          }}
-                          frames={genderPieFrames}
-                          config={{ responsive: true, displayModeBar: true }}
-                          style={{ width: "100%", height: "700px" }}
-                          useResizeHandler={true}
-                        />
+                                paper_bgcolor: "white",
+                                updatemenus: [
+                                  {
+                                    x: 0,
+                                    y: 0,
+                                    yanchor: "top",
+                                    xanchor: "left",
+                                    showactive: false,
+                                    direction: "left",
+                                    type: "buttons",
+                                    pad: { t: 50, r: 10 },
+                                    buttons: [
+                                      {
+                                        method: "animate",
+                                        args: [
+                                          null,
+                                          {
+                                            mode: "immediate",
+                                            fromcurrent: true,
+                                            transition: { duration: 300 },
+                                            frame: {
+                                              duration: 800,
+                                              redraw: true,
+                                            },
+                                          },
+                                        ],
+                                        label: "▶︎",
+                                      },
+                                      {
+                                        method: "animate",
+                                        args: [
+                                          [null],
+                                          {
+                                            mode: "immediate",
+                                            transition: { duration: 0 },
+                                            frame: {
+                                              duration: 0,
+                                              redraw: false,
+                                            },
+                                          },
+                                        ],
+                                        label: "||",
+                                      },
+                                    ],
+                                  },
+                                ],
+                                sliders: [
+                                  {
+                                    active: genderYears.length - 1,
+                                    pad: { l: 100, t: 55 },
+                                    steps: genderYears.map((year, idx) => ({
+                                      label: year.toString(),
+                                      method: "animate",
+                                      args: [
+                                        [`genderPieFrame-${idx}`],
+                                        {
+                                          mode: "immediate",
+                                          frame: { duration: 0, redraw: true },
+                                          transition: { duration: 0 },
+                                        },
+                                      ],
+                                    })),
+                                  },
+                                ],
+                              }}
+                              frames={genderPieFrames}
+                              config={{
+                                responsive: true,
+                                displayModeBar: true,
+                              }}
+                              style={{ width: "100%", height: "650px" }}
+                              useResizeHandler={true}
+                            />
+                          </div>
+                        </div>
                       )}
                     </>
                   )}
