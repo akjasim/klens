@@ -1522,8 +1522,8 @@ export default function DemographicIndicator() {
                           useResizeHandler={true}
                         />
                       ) : (
-                        <div className="row g-4">
-                          <div className="col-lg-6">
+                        <div className="row g-4 justify-content-center">
+                          <div className="col-lg-8">
                             <Plot
                               data={genderPieTraces}
                               layout={{
