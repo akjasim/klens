@@ -301,7 +301,7 @@ export default function Urbanization() {
           return new THREE.Color(`rgb(${r},${g},${b})`);
         }
       } else {
-        // Choropleth: Light Blue (0) → Dark Blue (1)
+        // Cool gradient: Light Blue (0) → Dark Blue (1)
         const r = Math.round(255 * (1 - normalized * 0.7)); // 255 to 76
         const g = Math.round(200 * (1 - normalized * 0.8)); // 200 to 40
         const b = Math.round(255 * (1 - normalized * 0.2)); // 255 to 204
@@ -1520,9 +1520,9 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="Heat map: Yellow → Orange → Red"
+                                title="Warm gradient: Yellow → Orange → Red"
                               >
-                                Heat
+                                Warm
                               </button>
                               <button
                                 onClick={() => setColorScheme("choropleth")}
@@ -1546,9 +1546,9 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="Choropleth: Light Blue → Dark Blue"
+                                title="Cool gradient: Light Blue → Dark Blue"
                               >
-                                Choropleth
+                                Cool
                               </button>
                             </div>
 
@@ -2084,9 +2084,9 @@ export default function Urbanization() {
                                 fontSize: "13px",
                                 transition: "all 0.3s ease",
                               }}
-                              title="Heat map: Yellow → Orange → Red"
+                              title="Warm gradient: Yellow → Orange → Red"
                             >
-                              Heat
+                              Warm
                             </button>
                             <button
                               onClick={() => setColorScheme("choropleth")}
@@ -2110,9 +2110,9 @@ export default function Urbanization() {
                                 fontSize: "13px",
                                 transition: "all 0.3s ease",
                               }}
-                              title="Choropleth: Light Blue → Dark Blue"
+                              title="Cool gradient: Light Blue → Dark Blue"
                             >
-                              Choropleth
+                              Cool
                             </button>
                           </div>
 
