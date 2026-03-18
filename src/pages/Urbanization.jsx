@@ -885,8 +885,10 @@ export default function Urbanization() {
         return;
       }
 
+      const kreiseLabel = kreise.displayName || kreise.name;
+
       // Get data for this Kreise
-      const dataEntry = activeKreiseData.find((e) => e.name === kreise.name);
+      const dataEntry = activeKreiseData.find((e) => e.name === kreiseLabel);
       let value = 0;
       let displayValue = 0;
 
@@ -986,7 +988,7 @@ export default function Urbanization() {
       const area = (bbox.max.x - bbox.min.x) * (bbox.max.y - bbox.min.y);
 
       mesh.userData = {
-        name: kreise.name,
+        name: kreiseLabel,
         value: value,
         displayValue: displayValue,
         dataCategory: dataCategory,

@@ -555,7 +555,7 @@ export async function fetchKreiseGeometryForState(stateName) {
     // Get the first 2 digits which represent the state code
     const stateCode = stateRSKey.substring(0, 2);
 
-    return hits
+    const kreise = hits
       .filter((hit) =>
         hit._source?.amtlicher_regionalschluessel?.startsWith(stateCode),
       )
@@ -566,10 +566,98 @@ export async function fetchKreiseGeometryForState(stateName) {
         geolocation: hit._source?.geolocation,
         amtlicher_regionalschluessel: hit._source?.amtlicher_regionalschluessel,
       }));
+
+    // Disambiguate duplicate district names within the same state
+    // (e.g. "München" vs "München, Landeshauptstadt").
+    const nameCounts = kreise.reduce((acc, k) => {
+      const key = k.name || "";
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    return kreise.map((k) => {
+      if ((nameCounts[k.name] || 0) <= 1) return k;
+
+      const suffix = k.designation ? `, ${k.designation}` : "";
+      return {
+        ...k,
+        displayName: `${k.name}${suffix}`,
+      };
+    });
   } catch (err) {
     console.error(`Error fetching Kreise geometry for ${stateName}:`, err);
     return [];
   }
+}
+
+function getKreiseSuffixCandidates(kreise) {
+  const suffixes = [
+    "",
+    ", Stadt",
+    ", Landkreis",
+    "Landkreis ",
+    ", Freie und Hansestadt",
+    ", Hansestadt",
+    ", Klingenstadt",
+    ", Landeshauptstadt",
+    ", Stadt der FernUniversität",
+    ", Stadtkreis",
+    ", Wissenschaftsstadt",
+    ", documenta-Stadt",
+    ", kreisfreie Stadt",
+  ];
+
+  const designation = (kreise.designation || "").toLowerCase();
+  const preferred = [];
+
+  if (designation.includes("landeshauptstadt")) {
+    preferred.push(", Landeshauptstadt");
+  }
+  if (designation.includes("landkreis")) {
+    preferred.push("Landkreis ", ", Landkreis");
+  }
+  if (designation.includes("kreisfreie") || designation.includes("stadt")) {
+    preferred.push(", Stadt", ", kreisfreie Stadt");
+  }
+
+  const orderedSuffixes = [...new Set([...preferred, ...suffixes])];
+
+  return orderedSuffixes.map((suffix) => {
+    if (suffix.startsWith("Landkreis ")) {
+      return `${suffix}${kreise.name}`;
+    }
+    if (suffix) {
+      return `${kreise.name}${suffix}`;
+    }
+    return kreise.name;
+  });
+}
+
+function matchKreiseNames(kreiseList, validKreiseNames) {
+  const validSet = new Set(validKreiseNames);
+  const usedMatches = new Set();
+
+  return kreiseList
+    .map((k) => {
+      const candidates = getKreiseSuffixCandidates(k).filter((name) =>
+        validSet.has(name),
+      );
+
+      if (candidates.length === 0) return null;
+
+      const uniqueCandidate =
+        candidates.find((candidate) => !usedMatches.has(candidate)) ||
+        candidates[0];
+
+      usedMatches.add(uniqueCandidate);
+
+      return {
+        originalName: k.name,
+        displayName: k.displayName || k.name,
+        matchedName: uniqueCandidate,
+      };
+    })
+    .filter(Boolean);
 }
 
 // Fetch population data for all Kreise in a state
@@ -585,43 +673,7 @@ export async function fetchAllKreisePopulationForState(stateName) {
     // Fetch all valid Kreise names from the index
     const validKreiseNames = await fetchAllKreiseNames();
 
-    // All possible suffixes/prefixes for Kreise names
-    const kreiseSuffixes = [
-      "",
-      ", Stadt",
-      ", Landkreis",
-      "Landkreis ",
-      ", Freie und Hansestadt",
-      ", Hansestadt",
-      ", Klingenstadt",
-      ", Landeshauptstadt",
-      ", Stadt der FernUniversität",
-      ", Stadtkreis",
-      ", Wissenschaftsstadt",
-      ", documenta-Stadt",
-      ", kreisfreie Stadt",
-    ];
-
-    // For each geometry Kreise, find the best-matched name from valid Kreise names
-    const kreiseWithMatchedNames = kreise
-      .map((k) => {
-        // Try all suffixes to find a match in valid names
-        for (const suffix of kreiseSuffixes) {
-          let variant;
-          if (suffix.startsWith("Landkreis ")) {
-            variant = `${suffix}${k.name}`;
-          } else if (suffix) {
-            variant = `${k.name}${suffix}`;
-          } else {
-            variant = k.name;
-          }
-          if (validKreiseNames.includes(variant)) {
-            return { originalName: k.name, matchedName: variant };
-          }
-        }
-        return null;
-      })
-      .filter(Boolean); // Remove Kreise with no match
+    const kreiseWithMatchedNames = matchKreiseNames(kreise, validKreiseNames);
 
     // Fetch data for each matched Kreise (one request per Kreise)
     const promises = kreiseWithMatchedNames.map((k) => {
@@ -648,13 +700,13 @@ export async function fetchAllKreisePopulationForState(stateName) {
 
       return executeQuery(payload)
         .then((result) => ({
-          name: k.originalName,
+          name: k.displayName,
           data: (result?.hits?.hits || []).map((hit) => ({
             year: parseInt(hit._source?.zeitbezug, 10),
             population: parseFloat(hit._source?.wert || 0),
           })),
         }))
-        .catch(() => ({ name: k.originalName, data: [] }));
+        .catch(() => ({ name: k.displayName, data: [] }));
     });
 
     const results = await Promise.all(promises);
@@ -687,43 +739,7 @@ export async function fetchAllKreiseInternetSpeedForState(
     // Fetch all valid Kreise names from the index
     const validKreiseNames = await fetchAllKreiseNames();
 
-    // All possible suffixes/prefixes for Kreise names
-    const kreiseSuffixes = [
-      "",
-      ", Stadt",
-      ", Landkreis",
-      "Landkreis ",
-      ", Freie und Hansestadt",
-      ", Hansestadt",
-      ", Klingenstadt",
-      ", Landeshauptstadt",
-      ", Stadt der FernUniversität",
-      ", Stadtkreis",
-      ", Wissenschaftsstadt",
-      ", documenta-Stadt",
-      ", kreisfreie Stadt",
-    ];
-
-    // For each geometry Kreise, find the best-matched name from valid Kreise names
-    const kreiseWithMatchedNames = kreise
-      .map((k) => {
-        // Try all suffixes to find a match in valid names
-        for (const suffix of kreiseSuffixes) {
-          let variant;
-          if (suffix.startsWith("Landkreis ")) {
-            variant = `${suffix}${k.name}`;
-          } else if (suffix) {
-            variant = `${k.name}${suffix}`;
-          } else {
-            variant = k.name;
-          }
-          if (validKreiseNames.includes(variant)) {
-            return { originalName: k.name, matchedName: variant };
-          }
-        }
-        return null;
-      })
-      .filter(Boolean); // Remove Kreise with no match
+    const kreiseWithMatchedNames = matchKreiseNames(kreise, validKreiseNames);
 
     // Fetch data for each matched Kreise (one request per Kreise)
     const promises = kreiseWithMatchedNames.map((k) => {
@@ -750,13 +766,13 @@ export async function fetchAllKreiseInternetSpeedForState(
 
       return executeQuery(payload)
         .then((result) => ({
-          name: k.originalName,
+          name: k.displayName,
           data: (result?.hits?.hits || []).map((hit) => ({
             year: parseInt(hit._source?.zeitbezug, 10),
             speed: parseFloat(hit._source?.wert || 0),
           })),
         }))
-        .catch(() => ({ name: k.originalName, data: [] }));
+        .catch(() => ({ name: k.displayName, data: [] }));
     });
 
     const results = await Promise.all(promises);
