@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Plot from "react-plotly.js";
 import {
@@ -25,6 +25,9 @@ export default function DemographicIndicator() {
   const [selectedPlace, setSelectedPlace] = useState(
     "Bundesrepublik Deutschland",
   );
+  const [ageYearIndex, setAgeYearIndex] = useState(0);
+  const [isAgeAnimating, setIsAgeAnimating] = useState(false);
+  const ageAnimationIntervalRef = useRef(null);
 
   useEffect(() => {
     const loadRaumbezugOptions = async () => {
@@ -136,37 +139,52 @@ export default function DemographicIndicator() {
     ...new Set(demographicsData.map((d) => d.ageGroup)),
   ].sort((a, b) => ageGroupOrder.indexOf(a) - ageGroupOrder.indexOf(b));
 
-  // Define colors for age groups (light → dark in ordered age groups)
-  const ageGroupGradient = [
-    "#e9f7ef",
-    "#d3f0df",
-    "#bde9cf",
-    "#a6e1be",
-    "#90daae",
-    "#7ad39e",
-    "#63cc8d",
-    "#4dc57d",
-    "#37be6d",
-  ];
+  // Use three base bucket colors and increase alpha inside each bucket.
+  const ageBuckets = {
+    "0-18": ["0-3", "3-6", "6-18"],
+    "18-65": ["18-25", "25-30", "30-50", "50-65"],
+    "65+": ["65-75", "75+"],
+  };
 
-  const ageGroupColors = ageGroupOrder.reduce((acc, group, idx) => {
-    acc[group] = ageGroupGradient[idx] || "#2365d8";
-    return acc;
-  }, {});
+  const bucketBaseRgb = {
+    "0-18": [220, 53, 69],
+    "18-65": [25, 135, 84],
+    "65+": [13, 110, 253],
+  };
 
-  const ageGroupPieColors = {
-    "0-3": "#0d6efd",
-    "3-6": "#198754",
-    "6-18": "#dc3545",
-    "18-25": "#ffc107",
-    "25-30": "#0dcaf0",
-    "30-50": "#6f42c1",
-    "50-65": "#fd7e14",
-    "65-75": "#20c997",
-    "75+": "#e83e8c",
+  const alphaRampByBucket = {
+    "0-18": [0.55, 0.75, 0.95],
+    "18-65": [0.45, 0.6, 0.75, 0.9],
+    "65+": [0.65, 0.95],
+  };
+
+  const rgbaFromRgb = (rgb, alpha) =>
+    `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+
+  const ageGroupColors = Object.entries(ageBuckets).reduce(
+    (acc, [bucket, groups]) => {
+      const baseRgb = bucketBaseRgb[bucket];
+      const alphaRamp = alphaRampByBucket[bucket];
+
+      groups.forEach((group, idx) => {
+        acc[group] = rgbaFromRgb(baseRgb, alphaRamp[idx]);
+      });
+
+      return acc;
+    },
+    {},
+  );
+
+  const classBucketColors = {
+    "0-18": rgbaFromRgb(bucketBaseRgb["0-18"], 0.9),
+    "18-65": rgbaFromRgb(bucketBaseRgb["18-65"], 0.9),
+    "65+": rgbaFromRgb(bucketBaseRgb["65+"], 0.9),
   };
 
   const firstYear = years[0];
+  const currentAgeYear = years.length
+    ? years[Math.min(ageYearIndex, years.length - 1)]
+    : firstYear;
 
   // Helper to get population in millions for a given year and age group
   const getPopulationFor = (year, ageGroup) => {
@@ -274,58 +292,14 @@ export default function DemographicIndicator() {
   const barTraces = broadAgeGroups.map((ageGroup) => {
     return {
       x: [ageGroup],
-      y: [getPopulationFor(firstYear, ageGroup)],
+      y: [getPopulationFor(currentAgeYear, ageGroup)],
       name: ageGroup,
       type: "bar",
       marker: { color: ageGroupColors[ageGroup] },
     };
   });
 
-  const traces = [...barTraces, buildLineTraceForYear(firstYear)];
-
-  // Build frames for animation (one per year, showing that year's distribution)
-  const frames = years.map((year, yearIdx) => {
-    const tracesForYear = broadAgeGroups.map((ageGroup) => ({
-      x: [ageGroup],
-      y: [getPopulationFor(year, ageGroup)],
-      name: ageGroup,
-      type: "bar",
-      marker: { color: ageGroupColors[ageGroup] },
-    }));
-
-    // Line trace updates with each year
-    tracesForYear.push(buildLineTraceForYear(year));
-
-    return {
-      name: `frame-${yearIdx}`,
-      data: tracesForYear,
-      layout: {
-        yaxis: {
-          autorange: false,
-          range: [0, yAxisMax],
-          dtick: yAxisTick,
-        },
-        annotations: [
-          {
-            text: year.toString(),
-            xref: "paper",
-            yref: "paper",
-            x: 0.5,
-            y: 0.5,
-            xanchor: "center",
-            yanchor: "middle",
-            showarrow: false,
-            font: {
-              size: 160,
-              color: "rgba(0, 0, 0, 0.08)",
-              family: "Arial, sans-serif",
-              weight: "bold",
-            },
-          },
-        ],
-      },
-    };
-  });
+  const traces = [...barTraces, buildLineTraceForYear(currentAgeYear)];
 
   // Calculate statistics for insights
   const hasData = demographicsData.length > 0;
@@ -592,54 +566,17 @@ export default function DemographicIndicator() {
     {
       labels: broadAgeGroups,
       values: broadAgeGroups.map((ageGroup) =>
-        getPopulationFor(firstYear, ageGroup),
+        getPopulationFor(currentAgeYear, ageGroup),
       ),
       type: "pie",
+      sort: false,
       marker: {
-        colors: broadAgeGroups.map((ageGroup) => ageGroupPieColors[ageGroup]),
+        colors: broadAgeGroups.map((ageGroup) => ageGroupColors[ageGroup]),
       },
       textinfo: "label+percent",
       hoverinfo: "label+value+percent",
     },
   ];
-
-  const ageGroupPieFrames = years.map((year, yearIdx) => ({
-    name: `ageGroupPieFrame-${yearIdx}`,
-    data: [
-      {
-        labels: broadAgeGroups,
-        values: broadAgeGroups.map((ageGroup) =>
-          getPopulationFor(year, ageGroup),
-        ),
-        type: "pie",
-        marker: {
-          colors: broadAgeGroups.map((ageGroup) => ageGroupPieColors[ageGroup]),
-        },
-        textinfo: "label+percent",
-        hoverinfo: "label+value+percent",
-      },
-    ],
-    layout: {
-      annotations: [
-        {
-          text: year.toString(),
-          xref: "paper",
-          yref: "paper",
-          x: 0.5,
-          y: 0.5,
-          xanchor: "center",
-          yanchor: "middle",
-          showarrow: false,
-          font: {
-            size: 160,
-            color: "rgba(0, 0, 0, 0.08)",
-            family: "Arial, sans-serif",
-            weight: "bold",
-          },
-        },
-      ],
-    },
-  }));
 
   // ============ WORKING CLASS PIE CHART ==========
   const classBuckets = ["0-18", "18-65", "65+"];
@@ -661,51 +598,54 @@ export default function DemographicIndicator() {
   const classPieTraces = [
     {
       labels: classBuckets,
-      values: getClassPopulationForYear(firstYear),
+      values: getClassPopulationForYear(currentAgeYear),
       type: "pie",
+      sort: false,
       marker: {
-        colors: ["#6c757d", "#198754", "#fd7e14"],
+        colors: classBuckets.map((bucket) => classBucketColors[bucket]),
       },
       textinfo: "label+percent",
       hoverinfo: "label+value+percent",
     },
   ];
 
-  const classPieFrames = years.map((year, yearIdx) => ({
-    name: `classPieFrame-${yearIdx}`,
-    data: [
-      {
-        labels: classBuckets,
-        values: getClassPopulationForYear(year),
-        type: "pie",
-        marker: {
-          colors: ["#6c757d", "#198754", "#fd7e14"],
-        },
-        textinfo: "label+percent",
-        hoverinfo: "label+value+percent",
-      },
-    ],
-    layout: {
-      annotations: [
-        {
-          text: year.toString(),
-          xref: "paper",
-          yref: "paper",
-          x: 0.5,
-          y: 0.5,
-          xanchor: "center",
-          yanchor: "middle",
-          showarrow: false,
-          font: {
-            size: 160,
-            color: "rgba(0, 0, 0, 0.08)",
-            family: "Arial, sans-serif",
-            weight: "bold",
-          },
-        },
-      ],
-    },
-  }));
+  // Keep one shared year index for all age-group charts and animate them in sync.
+  useEffect(() => {
+    if (years.length === 0) {
+      setAgeYearIndex(0);
+      setIsAgeAnimating(false);
+      return;
+    }
+    setAgeYearIndex(years.length - 1);
+    setIsAgeAnimating(false);
+  }, [years.length, selectedRaumbezug, selectedPlace]);
+
+  useEffect(() => {
+    if (!isAgeAnimating || years.length < 2) {
+      if (ageAnimationIntervalRef.current) {
+        clearInterval(ageAnimationIntervalRef.current);
+        ageAnimationIntervalRef.current = null;
+      }
+      return;
+    }
+
+    ageAnimationIntervalRef.current = setInterval(() => {
+      setAgeYearIndex((prev) => {
+        if (prev >= years.length - 1) {
+          setIsAgeAnimating(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 800);
+
+    return () => {
+      if (ageAnimationIntervalRef.current) {
+        clearInterval(ageAnimationIntervalRef.current);
+        ageAnimationIntervalRef.current = null;
+      }
+    };
+  }, [isAgeAnimating, years.length]);
 
   return (
     <div
@@ -976,6 +916,59 @@ export default function DemographicIndicator() {
                         </div>
                       )}
 
+                      {years.length > 0 && (
+                        <div className="border rounded p-3 mb-3 bg-light-subtle">
+                          <div className="d-flex flex-wrap align-items-center justify-content-between">
+                            <button
+                              type="button"
+                              className={`btn btn-sm mb-2 ${
+                                isAgeAnimating
+                                  ? "btn-outline-danger"
+                                  : "btn-outline-primary"
+                              }`}
+                              onClick={() => {
+                                if (
+                                  !isAgeAnimating &&
+                                  ageYearIndex >= years.length - 1
+                                ) {
+                                  setAgeYearIndex(0);
+                                }
+                                setIsAgeAnimating((prev) => !prev);
+                              }}
+                            >
+                              {isAgeAnimating ? "Pause" : "Play"}
+                            </button>
+
+                            <div className="d-flex gap-2">
+                              <span
+                                className="badge bg-dark justify-self-right"
+                                style={{ minWidth: "70px" }}
+                              >
+                                {currentAgeYear}
+                              </span>
+
+                              <span className="text-muted small">
+                                {years[0]} - {years[years.length - 1]}
+                              </span>
+                            </div>
+
+                            <input
+                              type="range"
+                              className="form-range flex-grow-1"
+                              min={0}
+                              max={Math.max(0, years.length - 1)}
+                              step={1}
+                              value={ageYearIndex}
+                              onChange={(e) => {
+                                setIsAgeAnimating(false);
+                                setAgeYearIndex(parseInt(e.target.value, 10));
+                              }}
+                              style={{ minWidth: "220px" }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       <Plot
                         data={traces}
                         layout={{
@@ -1014,7 +1007,7 @@ export default function DemographicIndicator() {
                           margin: { l: 80, r: 40, t: 80, b: 100 },
                           annotations: [
                             {
-                              text: latestYear.toString(),
+                              text: String(currentAgeYear ?? "-"),
                               xref: "paper",
                               yref: "paper",
                               x: 0.5,
@@ -1032,65 +1025,7 @@ export default function DemographicIndicator() {
                           ],
                           paper_bgcolor: "white",
                           plot_bgcolor: "#fafafa",
-                          updatemenus: [
-                            {
-                              x: 0,
-                              y: 0,
-                              yanchor: "top",
-                              xanchor: "left",
-                              showactive: false,
-                              direction: "left",
-                              type: "buttons",
-                              pad: { t: 50, r: 10 },
-                              buttons: [
-                                {
-                                  method: "animate",
-                                  args: [
-                                    null,
-                                    {
-                                      mode: "immediate",
-                                      fromcurrent: true,
-                                      transition: { duration: 300 },
-                                      frame: { duration: 800, redraw: true },
-                                    },
-                                  ],
-                                  label: "▶︎",
-                                },
-                                {
-                                  method: "animate",
-                                  args: [
-                                    [null],
-                                    {
-                                      mode: "immediate",
-                                      transition: { duration: 0 },
-                                      frame: { duration: 0, redraw: false },
-                                    },
-                                  ],
-                                  label: "||",
-                                },
-                              ],
-                            },
-                          ],
-                          sliders: [
-                            {
-                              active: years.length - 1,
-                              pad: { l: 100, t: 55 },
-                              steps: years.map((year, idx) => ({
-                                label: year.toString(),
-                                method: "animate",
-                                args: [
-                                  [`frame-${idx}`],
-                                  {
-                                    mode: "immediate",
-                                    frame: { duration: 0, redraw: true },
-                                    transition: { duration: 0 },
-                                  },
-                                ],
-                              })),
-                            },
-                          ],
                         }}
-                        frames={frames}
                         config={{ responsive: true, displayModeBar: true }}
                         style={{ width: "100%", height: "700px" }}
                         useResizeHandler={true}
@@ -1113,7 +1048,7 @@ export default function DemographicIndicator() {
                               margin: { l: 60, r: 60, t: 80, b: 60 },
                               annotations: [
                                 {
-                                  text: latestYear.toString(),
+                                  text: String(currentAgeYear ?? "-"),
                                   xref: "paper",
                                   yref: "paper",
                                   x: 0.5,
@@ -1130,68 +1065,7 @@ export default function DemographicIndicator() {
                                 },
                               ],
                               paper_bgcolor: "white",
-                              updatemenus: [
-                                {
-                                  x: 0,
-                                  y: 0,
-                                  yanchor: "top",
-                                  xanchor: "left",
-                                  showactive: false,
-                                  direction: "left",
-                                  type: "buttons",
-                                  pad: { t: 50, r: 10 },
-                                  buttons: [
-                                    {
-                                      method: "animate",
-                                      args: [
-                                        null,
-                                        {
-                                          mode: "immediate",
-                                          fromcurrent: true,
-                                          transition: { duration: 300 },
-                                          frame: {
-                                            duration: 800,
-                                            redraw: true,
-                                          },
-                                        },
-                                      ],
-                                      label: "▶︎",
-                                    },
-                                    {
-                                      method: "animate",
-                                      args: [
-                                        [null],
-                                        {
-                                          mode: "immediate",
-                                          transition: { duration: 0 },
-                                          frame: { duration: 0, redraw: false },
-                                        },
-                                      ],
-                                      label: "||",
-                                    },
-                                  ],
-                                },
-                              ],
-                              sliders: [
-                                {
-                                  active: years.length - 1,
-                                  pad: { l: 100, t: 55 },
-                                  steps: years.map((year, idx) => ({
-                                    label: year.toString(),
-                                    method: "animate",
-                                    args: [
-                                      [`ageGroupPieFrame-${idx}`],
-                                      {
-                                        mode: "immediate",
-                                        frame: { duration: 0, redraw: true },
-                                        transition: { duration: 0 },
-                                      },
-                                    ],
-                                  })),
-                                },
-                              ],
                             }}
-                            frames={ageGroupPieFrames}
                             config={{ responsive: true, displayModeBar: true }}
                             style={{ width: "100%", height: "650px" }}
                             useResizeHandler={true}
@@ -1214,7 +1088,7 @@ export default function DemographicIndicator() {
                               margin: { l: 60, r: 60, t: 80, b: 60 },
                               annotations: [
                                 {
-                                  text: latestYear.toString(),
+                                  text: String(currentAgeYear ?? "-"),
                                   xref: "paper",
                                   yref: "paper",
                                   x: 0.5,
@@ -1231,68 +1105,7 @@ export default function DemographicIndicator() {
                                 },
                               ],
                               paper_bgcolor: "white",
-                              updatemenus: [
-                                {
-                                  x: 0,
-                                  y: 0,
-                                  yanchor: "top",
-                                  xanchor: "left",
-                                  showactive: false,
-                                  direction: "left",
-                                  type: "buttons",
-                                  pad: { t: 50, r: 10 },
-                                  buttons: [
-                                    {
-                                      method: "animate",
-                                      args: [
-                                        null,
-                                        {
-                                          mode: "immediate",
-                                          fromcurrent: true,
-                                          transition: { duration: 300 },
-                                          frame: {
-                                            duration: 800,
-                                            redraw: true,
-                                          },
-                                        },
-                                      ],
-                                      label: "▶︎",
-                                    },
-                                    {
-                                      method: "animate",
-                                      args: [
-                                        [null],
-                                        {
-                                          mode: "immediate",
-                                          transition: { duration: 0 },
-                                          frame: { duration: 0, redraw: false },
-                                        },
-                                      ],
-                                      label: "||",
-                                    },
-                                  ],
-                                },
-                              ],
-                              sliders: [
-                                {
-                                  active: years.length - 1,
-                                  pad: { l: 100, t: 55 },
-                                  steps: years.map((year, idx) => ({
-                                    label: year.toString(),
-                                    method: "animate",
-                                    args: [
-                                      [`classPieFrame-${idx}`],
-                                      {
-                                        mode: "immediate",
-                                        frame: { duration: 0, redraw: true },
-                                        transition: { duration: 0 },
-                                      },
-                                    ],
-                                  })),
-                                },
-                              ],
                             }}
-                            frames={classPieFrames}
                             config={{ responsive: true, displayModeBar: true }}
                             style={{ width: "100%", height: "650px" }}
                             useResizeHandler={true}
