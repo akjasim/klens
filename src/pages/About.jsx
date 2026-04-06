@@ -30,7 +30,9 @@ export default function About() {
                 <div className="col-md-6">
                   <div className="h-100 border rounded-3 p-3 bg-light-subtle">
                     <h2 className="h5 mb-2">{t("aboutMissionTitle")}</h2>
-                    <p className="mb-0 text-secondary">{t("aboutMissionBody")}</p>
+                    <p className="mb-0 text-secondary">
+                      {t("aboutMissionBody")}
+                    </p>
                   </div>
                 </div>
 
