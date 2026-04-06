@@ -1611,6 +1611,96 @@ export default function Urbanization() {
                               >
                                 Internet Speed
                               </button>
+                            </div>
+
+                            {/* Speed Tier Toggle (Internet Speed only) */}
+                            {dataCategory === "internetSpeed" && (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  padding: "4px",
+                                  background: "#f0f0f0",
+                                  borderRadius: "6px",
+                                }}
+                              >
+                                <button
+                                  onClick={() => setSpeedType("50")}
+                                  style={{
+                                    padding: "8px 12px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      speedType === "50"
+                                        ? "#28a745"
+                                        : "transparent",
+                                    color: speedType === "50" ? "#fff" : "#666",
+                                    fontWeight:
+                                      speedType === "50" ? "bold" : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="50 Mbit/s availability"
+                                >
+                                  50 Mbit/s
+                                </button>
+                                <button
+                                  onClick={() => setSpeedType("100")}
+                                  style={{
+                                    padding: "8px 12px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      speedType === "100"
+                                        ? "#ffc107"
+                                        : "transparent",
+                                    color:
+                                      speedType === "100" ? "#000" : "#666",
+                                    fontWeight:
+                                      speedType === "100" ? "bold" : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="100 Mbit/s availability"
+                                >
+                                  100 Mbit/s
+                                </button>
+                                <button
+                                  onClick={() => setSpeedType("1000")}
+                                  style={{
+                                    padding: "8px 12px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      speedType === "1000"
+                                        ? "#dc3545"
+                                        : "transparent",
+                                    color:
+                                      speedType === "1000" ? "#fff" : "#666",
+                                    fontWeight:
+                                      speedType === "1000" ? "bold" : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="1000 Mbit/s (1 Gbit/s) availability"
+                                >
+                                  1000 Mbit/s
+                                </button>
+                              </div>
+                            )}
+
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                padding: "4px",
+                                background: "#f0f0f0",
+                                borderRadius: "6px",
+                              }}
+                            >
                               <div style={{ display: "flex", gap: "8px" }}>
                                 <div
                                   style={{
@@ -1738,85 +1828,6 @@ export default function Urbanization() {
                                 </div>
                               </div>
                             </div>
-
-                            {/* Speed Tier Toggle (Internet Speed only) */}
-                            {dataCategory === "internetSpeed" && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "8px",
-                                  padding: "4px",
-                                  background: "#f0f0f0",
-                                  borderRadius: "6px",
-                                }}
-                              >
-                                <button
-                                  onClick={() => setSpeedType("50")}
-                                  style={{
-                                    padding: "8px 12px",
-                                    borderRadius: "4px",
-                                    border: "none",
-                                    background:
-                                      speedType === "50"
-                                        ? "#28a745"
-                                        : "transparent",
-                                    color: speedType === "50" ? "#fff" : "#666",
-                                    fontWeight:
-                                      speedType === "50" ? "bold" : "normal",
-                                    cursor: "pointer",
-                                    fontSize: "13px",
-                                    transition: "all 0.3s ease",
-                                  }}
-                                  title="50 Mbit/s availability"
-                                >
-                                  50 Mbit/s
-                                </button>
-                                <button
-                                  onClick={() => setSpeedType("100")}
-                                  style={{
-                                    padding: "8px 12px",
-                                    borderRadius: "4px",
-                                    border: "none",
-                                    background:
-                                      speedType === "100"
-                                        ? "#ffc107"
-                                        : "transparent",
-                                    color:
-                                      speedType === "100" ? "#000" : "#666",
-                                    fontWeight:
-                                      speedType === "100" ? "bold" : "normal",
-                                    cursor: "pointer",
-                                    fontSize: "13px",
-                                    transition: "all 0.3s ease",
-                                  }}
-                                  title="100 Mbit/s availability"
-                                >
-                                  100 Mbit/s
-                                </button>
-                                <button
-                                  onClick={() => setSpeedType("1000")}
-                                  style={{
-                                    padding: "8px 12px",
-                                    borderRadius: "4px",
-                                    border: "none",
-                                    background:
-                                      speedType === "1000"
-                                        ? "#dc3545"
-                                        : "transparent",
-                                    color:
-                                      speedType === "1000" ? "#fff" : "#666",
-                                    fontWeight:
-                                      speedType === "1000" ? "bold" : "normal",
-                                    cursor: "pointer",
-                                    fontSize: "13px",
-                                    transition: "all 0.3s ease",
-                                  }}
-                                  title="1000 Mbit/s (1 Gbit/s) availability"
-                                >
-                                  1000 Mbit/s
-                                </button>
-                              </div>
-                            )}
 
                             {/* Color Scheme Toggle */}
                             <div
