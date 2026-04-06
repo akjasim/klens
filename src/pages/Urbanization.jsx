@@ -7,9 +7,13 @@ import {
   fetchStateGeometry,
   fetchAllStatesPopulation,
   fetchAllStatesInternetSpeed,
+  fetchAllStatesBirthRate,
+  fetchAllStatesDeathRate,
   fetchKreiseGeometryForState,
   fetchAllKreisePopulationForState,
   fetchAllKreiseInternetSpeedForState,
+  fetchAllKreiseBirthRateForState,
+  fetchAllKreiseDeathRateForState,
 } from "../api/elasticsearch";
 import { formatNumber } from "../helpers";
 
@@ -31,8 +35,10 @@ export default function Urbanization() {
   const kreiseControlsRef = useRef(null);
 
   const [stateData, setStateData] = useState([]);
-  const [populationData, setPopulationData] = useState({});
-  const [internetSpeedData, setInternetSpeedData] = useState({});
+  const [populationData, setPopulationData] = useState([]);
+  const [internetSpeedData, setInternetSpeedData] = useState([]);
+  const [birthRateData, setBirthRateData] = useState([]);
+  const [deathRateData, setDeathRateData] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
   const [selectedYear, setSelectedYear] = useState(2020);
@@ -50,11 +56,75 @@ export default function Urbanization() {
   // Kreise view state
   const [selectedState, setSelectedState] = useState(null); // Name of clicked state to view Kreise
   const [kreiseData, setKreiseData] = useState([]);
-  const [kreisePopulationData, setKreisePopulationData] = useState({});
-  const [kreiseInternetSpeedData, setKreiseInternetSpeedData] = useState({});
+  const [kreisePopulationData, setKreisePopulationData] = useState([]);
+  const [kreiseInternetSpeedData, setKreiseInternetSpeedData] = useState([]);
+  const [kreiseBirthRateData, setKreiseBirthRateData] = useState([]);
+  const [kreiseDeathRateData, setKreiseDeathRateData] = useState([]);
   const [kreiseLoading, setKreiseLoading] = useState(false);
 
-  // Fetch state geometry, population data, and internet speed data
+  const categoryMeta = {
+    population: {
+      label: "Population",
+      subtitle: "Height = Population | Color = Density",
+      unit: "k",
+      heightScale: 0.05,
+      valueKey: "population",
+    },
+    internetSpeed: {
+      label: "Internet Speed",
+      subtitle: "Height = Availability % | Color = Coverage Level",
+      unit: "%",
+      heightScale: 5,
+      valueKey: "speed",
+    },
+    birthRate: {
+      label: "Birth Rate",
+      subtitle: "Height = Births per 1,000 people | Color = Coverage Level",
+      unit: "‰",
+      heightScale: 8,
+      valueKey: "birthRate",
+    },
+    deathRate: {
+      label: "Death Rate",
+      subtitle: "Height = Deaths per 1,000 people | Color = Coverage Level",
+      unit: "‰",
+      heightScale: 8,
+      valueKey: "deathRate",
+    },
+  };
+
+  const getCategoryMeta = (category) =>
+    categoryMeta[category] || categoryMeta.population;
+
+  const getStateCategoryData = (category) => {
+    if (category === "population") return populationData;
+    if (category === "internetSpeed") return internetSpeedData;
+    if (category === "birthRate") return birthRateData;
+    return deathRateData;
+  };
+
+  const getKreiseCategoryData = (category) => {
+    if (category === "population") return kreisePopulationData;
+    if (category === "internetSpeed") return kreiseInternetSpeedData;
+    if (category === "birthRate") return kreiseBirthRateData;
+    return kreiseDeathRateData;
+  };
+
+  const getCategoryValue = (yearData, category) => {
+    if (category === "population") return yearData?.population ?? 0;
+    if (category === "internetSpeed") return yearData?.speed ?? 0;
+    if (category === "birthRate") return yearData?.birthRate ?? 0;
+    if (category === "deathRate") return yearData?.deathRate ?? 0;
+    return 0;
+  };
+
+  const getPopulationForEntry = (series, entryName, year) => {
+    const entry = series.find((item) => item.name === entryName);
+    const yearData = entry?.data.find((item) => item.year === year);
+    return yearData?.population ?? 0;
+  };
+
+  // Fetch state geometry and all state-level indicator data
   useEffect(() => {
     const fetchData = async () => {
       setDataError(null);
@@ -67,24 +137,18 @@ export default function Urbanization() {
         // Fetch population data for all states
         const popData = await fetchAllStatesPopulation();
 
-        // Fetch internet speed data for all states (based on selected speedType)
-        const speedData = await fetchAllStatesInternetSpeed(speedType);
-
-        // Extract available years from the active data category
-        const yearsSet = new Set();
-        const activeData = dataCategory === "population" ? popData : speedData;
-        activeData.forEach((stateEntry) => {
-          stateEntry.data.forEach((entry) => yearsSet.add(entry.year));
-        });
-        const years = Array.from(yearsSet).sort((a, b) => a - b);
+        // Fetch the remaining indicators in parallel
+        const [speedData, birthData, deathData] = await Promise.all([
+          fetchAllStatesInternetSpeed(speedType),
+          fetchAllStatesBirthRate(),
+          fetchAllStatesDeathRate(),
+        ]);
 
         setStateData(states);
         setPopulationData(popData);
         setInternetSpeedData(speedData);
-        setAvailableYears(years);
-        if (years.length > 0) {
-          setSelectedYear(years[0]); // Default to first year
-        }
+        setBirthRateData(birthData);
+        setDeathRateData(deathData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setDataError(err.message || "Failed to fetch data");
@@ -94,7 +158,35 @@ export default function Urbanization() {
     };
 
     fetchData();
-  }, [dataCategory, speedType]);
+  }, [speedType]);
+
+  useEffect(() => {
+    const activeData = getStateCategoryData(dataCategory);
+    if (!Array.isArray(activeData)) {
+      setAvailableYears([]);
+      return;
+    }
+    const yearsSet = new Set();
+
+    activeData.forEach((stateEntry) => {
+      stateEntry.data.forEach((entry) => yearsSet.add(entry.year));
+    });
+
+    const years = Array.from(yearsSet).sort((a, b) => a - b);
+    setAvailableYears(years);
+
+    if (years.length > 0) {
+      setSelectedYear((currentYear) =>
+        years.includes(currentYear) ? currentYear : years[0],
+      );
+    }
+  }, [
+    dataCategory,
+    populationData,
+    internetSpeedData,
+    birthRateData,
+    deathRateData,
+  ]);
 
   // Fetch Kreise data when a state is selected
   useEffect(() => {
@@ -102,6 +194,8 @@ export default function Urbanization() {
       setKreiseData([]);
       setKreisePopulationData({});
       setKreiseInternetSpeedData({});
+      setKreiseBirthRateData({});
+      setKreiseDeathRateData({});
       return;
     }
 
@@ -114,10 +208,14 @@ export default function Urbanization() {
           selectedState,
           speedType,
         );
+        const birthData = await fetchAllKreiseBirthRateForState(selectedState);
+        const deathData = await fetchAllKreiseDeathRateForState(selectedState);
 
         setKreiseData(geometry);
         setKreisePopulationData(popData);
         setKreiseInternetSpeedData(speedData);
+        setKreiseBirthRateData(birthData);
+        setKreiseDeathRateData(deathData);
       } catch (err) {
         console.error(`Error fetching Kreise data for ${selectedState}:`, err);
       } finally {
@@ -160,15 +258,13 @@ export default function Urbanization() {
     if (
       !mountRef.current ||
       stateData.length === 0 ||
-      (dataCategory === "population" && populationData.length === 0) ||
-      (dataCategory === "internetSpeed" && internetSpeedData.length === 0) ||
+      getStateCategoryData(dataCategory).length === 0 ||
       availableYears.length === 0
     )
       return;
 
     // Get the active dataset based on category
-    const activeData =
-      dataCategory === "population" ? populationData : internetSpeedData;
+    const activeData = getStateCategoryData(dataCategory);
 
     // Save camera state before cleanup
     if (cameraRef.current) {
@@ -262,11 +358,9 @@ export default function Urbanization() {
 
     activeData.forEach((stateEntry) => {
       stateEntry.data.forEach((yearData) => {
-        let value;
+        let value = getCategoryValue(yearData, dataCategory);
         if (dataCategory === "population") {
-          value = yearData.population / 1000; // Convert to thousands
-        } else {
-          value = yearData.speed; // Internet speed percentage
+          value /= 1000; // Convert to thousands
         }
         if (value > 0) {
           minValue = Math.min(minValue, value);
@@ -275,15 +369,22 @@ export default function Urbanization() {
       });
     });
 
+    // Fallback to avoid invalid color normalization when all values are missing/identical.
+    if (!isFinite(minValue) || !isFinite(maxValue) || maxValue <= minValue) {
+      minValue = 0;
+      maxValue = 1;
+    }
+
+    const logUnit = getCategoryMeta(dataCategory).unit;
     console.log(
-      dataCategory === "population"
-        ? `Population range (thousands): ${minValue.toFixed(0)} - ${maxValue.toFixed(0)}`
-        : `Internet speed range (% availability): ${minValue.toFixed(1)}% - ${maxValue.toFixed(1)}%`,
+      `${getCategoryMeta(dataCategory).label} range: ${minValue.toFixed(1)}${logUnit} - ${maxValue.toFixed(1)}${logUnit}`,
     );
 
     // Color scale function - supports multiple schemes
     const getColor = (value) => {
-      const normalized = (value - minValue) / (maxValue - minValue);
+      const range = maxValue - minValue;
+      const normalized =
+        range > 0 ? Math.max(0, Math.min(1, (value - minValue) / range)) : 0;
 
       if (colorScheme === "heat") {
         // Yellow (0) → Orange (0.5) → Red (1)
@@ -319,28 +420,38 @@ export default function Urbanization() {
       const dataEntry = activeData.find((e) => e.name === state.name);
       let value = 0;
       let displayValue = 0;
+      const categoryInfo = getCategoryMeta(dataCategory);
+      let displayLabel = categoryInfo.label;
 
       if (dataEntry && dataEntry.data.length > 0) {
         const yearData = dataEntry.data.find((d) => d.year === selectedYear);
+        const selectedData = yearData || dataEntry.data[0];
+        const rateYear = selectedData.year;
+        value = getCategoryValue(selectedData, dataCategory);
         if (dataCategory === "population") {
-          value =
-            (yearData
-              ? yearData.population
-              : dataEntry.data[0].population || 0) / 1000; // Convert to thousands
+          value /= 1000; // Convert to thousands
           displayValue = value * 1000; // For display purposes
+        } else if (
+          dataCategory === "birthRate" ||
+          dataCategory === "deathRate"
+        ) {
+          const population = getPopulationForEntry(
+            populationData,
+            state.name,
+            rateYear,
+          );
+          displayValue = (population * value) / 1000;
+          displayLabel =
+            dataCategory === "birthRate"
+              ? "Estimated births"
+              : "Estimated deaths";
         } else {
-          value = yearData ? yearData.speed : dataEntry.data[0].speed || 0; // Internet speed percentage
           displayValue = value;
         }
       }
 
       // Convert value to height with appropriate scaling
-      let heightScale;
-      if (dataCategory === "population") {
-        heightScale = 0.05; // Scale for population in thousands
-      } else {
-        heightScale = 5; // Scale for internet speed percentage
-      }
+      const heightScale = categoryInfo.heightScale;
       const terrainHeight = Math.max(3, value * heightScale);
 
       // Calculate normalized value for debugging
@@ -349,7 +460,7 @@ export default function Urbanization() {
       // Color by value
       const color = getColor(value);
 
-      const unit = dataCategory === "population" ? "k" : "%";
+      const unit = categoryInfo.unit;
       console.log(
         `${state.name}: ${value.toFixed(dataCategory === "population" ? 0 : 1)}${unit} (norm: ${normalized.toFixed(3)}) → height ${terrainHeight.toFixed(1)}, color: rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`,
       );
@@ -433,6 +544,8 @@ export default function Urbanization() {
         dataCategory: dataCategory,
         color: color,
         area: area,
+        unit: unit,
+        displayLabel: displayLabel,
       };
 
       // PHASE 4: Add border edges for terrain definition
@@ -671,8 +784,7 @@ export default function Urbanization() {
       !kreiseMountRef.current ||
       !selectedState ||
       kreiseData.length === 0 ||
-      (dataCategory === "population" && kreisePopulationData.length === 0) ||
-      (dataCategory === "internetSpeed" && kreiseInternetSpeedData.length === 0)
+      getKreiseCategoryData(dataCategory).length === 0
     ) {
       // Always clean up when these conditions aren't met
       if (kreiseRendererRef.current && kreiseMountRef.current) {
@@ -696,10 +808,7 @@ export default function Urbanization() {
       return;
     }
 
-    const activeKreiseData =
-      dataCategory === "population"
-        ? kreisePopulationData
-        : kreiseInternetSpeedData;
+    const activeKreiseData = getKreiseCategoryData(dataCategory);
 
     // Save camera state before cleanup
     if (kreiseCameraRef.current && kreiseControlsRef.current) {
@@ -836,11 +945,9 @@ export default function Urbanization() {
 
     activeKreiseData.forEach((kreisEntry) => {
       kreisEntry.data.forEach((yearData) => {
-        let value;
+        let value = getCategoryValue(yearData, dataCategory);
         if (dataCategory === "population") {
-          value = yearData.population / 1000;
-        } else {
-          value = yearData.speed;
+          value /= 1000;
         }
         if (value > 0) {
           minValue = Math.min(minValue, value);
@@ -849,15 +956,20 @@ export default function Urbanization() {
       });
     });
 
+    if (!isFinite(minValue) || !isFinite(maxValue) || maxValue <= minValue) {
+      minValue = 0;
+      maxValue = 1;
+    }
+
     console.log(
-      dataCategory === "population"
-        ? `Kreise population range (thousands): ${minValue.toFixed(0)} - ${maxValue.toFixed(0)}`
-        : `Kreise internet speed range (% availability): ${minValue.toFixed(1)}% - ${maxValue.toFixed(1)}%`,
+      `Kreise ${getCategoryMeta(dataCategory).label} range: ${minValue.toFixed(1)}${getCategoryMeta(dataCategory).unit} - ${maxValue.toFixed(1)}${getCategoryMeta(dataCategory).unit}`,
     );
 
     // Color scale function
     const getColor = (value) => {
-      const normalized = (value - minValue) / (maxValue - minValue);
+      const range = maxValue - minValue;
+      const normalized =
+        range > 0 ? Math.max(0, Math.min(1, (value - minValue) / range)) : 0;
 
       if (colorScheme === "heat") {
         if (normalized < 0.5) {
@@ -891,28 +1003,38 @@ export default function Urbanization() {
       const dataEntry = activeKreiseData.find((e) => e.name === kreiseLabel);
       let value = 0;
       let displayValue = 0;
+      const categoryInfo = getCategoryMeta(dataCategory);
+      let displayLabel = categoryInfo.label;
 
       if (dataEntry && dataEntry.data.length > 0) {
         const yearData = dataEntry.data.find((d) => d.year === selectedYear);
+        const selectedData = yearData || dataEntry.data[0];
+        const rateYear = selectedData.year;
+        value = getCategoryValue(selectedData, dataCategory);
         if (dataCategory === "population") {
-          value =
-            (yearData
-              ? yearData.population
-              : dataEntry.data[0].population || 0) / 1000;
+          value /= 1000;
           displayValue = value * 1000;
+        } else if (
+          dataCategory === "birthRate" ||
+          dataCategory === "deathRate"
+        ) {
+          const population = getPopulationForEntry(
+            kreisePopulationData,
+            kreiseLabel,
+            rateYear,
+          );
+          displayValue = (population * value) / 1000;
+          displayLabel =
+            dataCategory === "birthRate"
+              ? "Estimated births"
+              : "Estimated deaths";
         } else {
-          value = yearData ? yearData.speed : dataEntry.data[0].speed || 0;
           displayValue = value;
         }
       }
 
       // Convert value to height
-      let heightScale;
-      if (dataCategory === "population") {
-        heightScale = 0.05;
-      } else {
-        heightScale = 5;
-      }
+      const heightScale = categoryInfo.heightScale;
       const terrainHeight = Math.max(3, value * heightScale);
 
       const color = getColor(value);
@@ -994,6 +1116,8 @@ export default function Urbanization() {
         dataCategory: dataCategory,
         color: color,
         area: area,
+        unit: categoryInfo.unit,
+        displayLabel: displayLabel,
       };
 
       // Add border edges
@@ -1146,7 +1270,7 @@ export default function Urbanization() {
             style={{ color: "#555", fontSize: "1.1rem", marginBottom: "15px" }}
           >
             {t("urbanizationSubtitle") ||
-              "Explore population patterns across German states in 3D"}
+              "Explore demographic and connectivity patterns across German states in 3D"}
           </p>
         </div>
 
@@ -1208,11 +1332,7 @@ export default function Urbanization() {
                         className="fw-bold mb-0"
                         style={{ color: "#2c3e50", fontSize: "1.3rem" }}
                       >
-                        🏔️ 3D{" "}
-                        {dataCategory === "population"
-                          ? "Population"
-                          : "Internet Speed"}{" "}
-                        Terrain Map
+                        🏔️ 3D {getCategoryMeta(dataCategory).label} Terrain Map
                       </h5>
                       <p
                         style={{
@@ -1222,9 +1342,7 @@ export default function Urbanization() {
                           marginBottom: "0",
                         }}
                       >
-                        {dataCategory === "population"
-                          ? "Height = Population | Color = Density"
-                          : "Height = Availability % | Color = Coverage Level"}
+                        {getCategoryMeta(dataCategory).subtitle}
                       </p>
                     </div>
 
@@ -1412,6 +1530,58 @@ export default function Urbanization() {
                                 title="Internet speed data"
                               >
                                 Internet Speed
+                              </button>
+                              <button
+                                onClick={() => setDataCategory("birthRate")}
+                                style={{
+                                  padding: "8px 16px",
+                                  borderRadius: "4px",
+                                  border: "none",
+                                  background:
+                                    dataCategory === "birthRate"
+                                      ? "#c0392b"
+                                      : "transparent",
+                                  color:
+                                    dataCategory === "birthRate"
+                                      ? "#fff"
+                                      : "#666",
+                                  fontWeight:
+                                    dataCategory === "birthRate"
+                                      ? "bold"
+                                      : "normal",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  transition: "all 0.3s ease",
+                                }}
+                                title="Birth rate data (people born per 1,000 people)"
+                              >
+                                Birth Rate
+                              </button>
+                              <button
+                                onClick={() => setDataCategory("deathRate")}
+                                style={{
+                                  padding: "8px 16px",
+                                  borderRadius: "4px",
+                                  border: "none",
+                                  background:
+                                    dataCategory === "deathRate"
+                                      ? "#34495e"
+                                      : "transparent",
+                                  color:
+                                    dataCategory === "deathRate"
+                                      ? "#fff"
+                                      : "#666",
+                                  fontWeight:
+                                    dataCategory === "deathRate"
+                                      ? "bold"
+                                      : "normal",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  transition: "all 0.3s ease",
+                                }}
+                                title="Death rate data (people died per 1,000 people)"
+                              >
+                                Death Rate
                               </button>
                             </div>
 
@@ -1694,9 +1864,9 @@ export default function Urbanization() {
                     >
                       <div style={{ fontSize: "0.9rem", color: "#555" }}>
                         <strong>Category:</strong>{" "}
-                        {dataCategory === "population"
-                          ? "Population"
-                          : `${speedType} Mbit/s availability`}
+                        {dataCategory === "internetSpeed"
+                          ? `${speedType} Mbit/s availability`
+                          : getCategoryMeta(dataCategory).label}
                       </div>
                       <div style={{ fontSize: "0.9rem", color: "#555" }}>
                         <strong>Color Scale:</strong>{" "}
@@ -1750,11 +1920,8 @@ export default function Urbanization() {
                       className="fw-bold mb-0"
                       style={{ color: "#2c3e50", fontSize: "1.3rem" }}
                     >
-                      🏔️ 3D{" "}
-                      {dataCategory === "population"
-                        ? "Population"
-                        : "Internet Speed"}{" "}
-                      Kreise Map - {selectedState}
+                      🏔️ 3D {getCategoryMeta(dataCategory).label} Kreise Map -{" "}
+                      {selectedState}
                     </h5>
                     <p
                       style={{
@@ -2059,6 +2226,69 @@ export default function Urbanization() {
                             </div>
                           )}
 
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              padding: "4px",
+                              background: "#f0f0f0",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            <button
+                              onClick={() => setDataCategory("birthRate")}
+                              style={{
+                                padding: "8px 16px",
+                                borderRadius: "4px",
+                                border: "none",
+                                background:
+                                  dataCategory === "birthRate"
+                                    ? "#c0392b"
+                                    : "transparent",
+                                color:
+                                  dataCategory === "birthRate"
+                                    ? "#fff"
+                                    : "#666",
+                                fontWeight:
+                                  dataCategory === "birthRate"
+                                    ? "bold"
+                                    : "normal",
+                                cursor: "pointer",
+                                fontSize: "13px",
+                                transition: "all 0.3s ease",
+                              }}
+                              title="Birth rate data (people born per 1,000 people)"
+                            >
+                              Birth Rate
+                            </button>
+                            <button
+                              onClick={() => setDataCategory("deathRate")}
+                              style={{
+                                padding: "8px 16px",
+                                borderRadius: "4px",
+                                border: "none",
+                                background:
+                                  dataCategory === "deathRate"
+                                    ? "#34495e"
+                                    : "transparent",
+                                color:
+                                  dataCategory === "deathRate"
+                                    ? "#fff"
+                                    : "#666",
+                                fontWeight:
+                                  dataCategory === "deathRate"
+                                    ? "bold"
+                                    : "normal",
+                                cursor: "pointer",
+                                fontSize: "13px",
+                                transition: "all 0.3s ease",
+                              }}
+                              title="Death rate data (people died per 1,000 people)"
+                            >
+                              Death Rate
+                            </button>
+                          </div>
+
                           {/* Color Scheme Toggle */}
                           <div
                             style={{
@@ -2256,9 +2486,9 @@ export default function Urbanization() {
                 >
                   <div style={{ fontSize: "0.9rem", color: "#555" }}>
                     <strong>Category:</strong>{" "}
-                    {dataCategory === "population"
-                      ? "Population"
-                      : `${speedType} Mbit/s availability`}
+                    {dataCategory === "internetSpeed"
+                      ? `${speedType} Mbit/s availability`
+                      : getCategoryMeta(dataCategory).label}
                   </div>
                   <div style={{ fontSize: "0.9rem", color: "#555" }}>
                     <strong>Color Scale:</strong>{" "}
@@ -2325,6 +2555,7 @@ export default function Urbanization() {
 
         {hoveredState && (
           <div
+            key={`${hoveredState.name}-${hoveredState.dataCategory}-${hoveredState.displayValue}`}
             style={{
               position: "fixed",
               left: tooltipPosition.x + 15,
@@ -2357,13 +2588,32 @@ export default function Urbanization() {
                     {formatNumber(Math.round(hoveredState.displayValue))}
                   </span>
                 </>
-              ) : (
+              ) : hoveredState.dataCategory === "internetSpeed" ? (
                 <>
                   {speedType} Mbit/s Availability:{" "}
                   <span style={{ color: "#fff", fontWeight: "500" }}>
                     {hoveredState.displayValue.toFixed(1)}%
                   </span>
                 </>
+              ) : (
+                <div>
+                  <div>
+                    Rate:{" "}
+                    <span style={{ color: "#fff", fontWeight: "500" }}>
+                      {typeof hoveredState.value === "number"
+                        ? `${hoveredState.value.toFixed(1)}%`
+                        : `0.0%`}
+                    </span>
+                  </div>
+                  <div>
+                    {hoveredState.displayLabel ||
+                      getCategoryMeta(hoveredState.dataCategory).label}
+                    :{" "}
+                    <span style={{ color: "#fff", fontWeight: "500" }}>
+                      {formatNumber(Math.round(hoveredState.displayValue))}
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
           </div>

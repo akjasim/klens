@@ -485,6 +485,89 @@ export async function fetchAllStatesInternetSpeed(speedType = "1000") {
   }
 }
 
+async function fetchStateRateSeries(stateName, indicatorName, rateKey) {
+  const payload = {
+    indexAction: "_search",
+    requestType: "post",
+    pretty: true,
+    dataForRemote: {
+      size: 100,
+      query: {
+        bool: {
+          must: [
+            { match: { "name.keyword": stateName } },
+            { match: { raumbezug: "Bundesländer" } },
+            { match: { bereich: "Bevölkerung" } },
+            { match: { indikator: indicatorName } },
+          ],
+        },
+      },
+      sort: [{ zeitbezug: { order: "asc" } }],
+    },
+    indexName: "inkar",
+  };
+
+  try {
+    const result = await executeQuery(payload);
+    const hits = result?.hits?.hits || [];
+    return hits.map((hit) => ({
+      year: parseInt(hit._source?.zeitbezug, 10),
+      [rateKey]: parseFloat(hit._source?.wert || 0),
+    }));
+  } catch (err) {
+    console.error(`Error fetching ${rateKey} for ${stateName}:`, err);
+    return [];
+  }
+}
+
+async function fetchAllStatesRateSeries(indicatorName, rateKey) {
+  try {
+    const states = await fetchStateGeometry();
+    const promises = states.map((state) =>
+      fetchStateRateSeries(state.name, indicatorName, rateKey).then((data) => ({
+        name: state.name,
+        data,
+      })),
+    );
+    return await Promise.all(promises);
+  } catch (err) {
+    console.error(`Error fetching all states ${rateKey}:`, err);
+    return [];
+  }
+}
+
+export async function fetchStateBirthRate(stateName) {
+  return fetchStateRateSeries(stateName, "Geborene", "birthRate");
+}
+
+export async function fetchAllStatesBirthRate() {
+  return fetchAllStatesRateSeries("Geborene", "birthRate");
+}
+
+export async function fetchStateDeathRate(stateName) {
+  return fetchStateRateSeries(stateName, "Gestorbene", "deathRate");
+}
+
+export async function fetchAllStatesDeathRate() {
+  return fetchAllStatesRateSeries("Gestorbene", "deathRate");
+}
+
+export async function fetchStateImmigrationRate(stateName) {
+  return fetchStateRateSeries(stateName, "Zuzugsrate", "immigrationRate");
+}
+
+export async function fetchAllStatesImmigrationRate() {
+  return fetchAllStatesRateSeries("Zuzugsrate", "immigrationRate");
+}
+
+export async function fetchStateEmigrationRate(stateName) {
+  return fetchStateRateSeries(stateName, "Fortzugsrate", "emigrationRate");
+}
+
+export async function fetchAllStatesEmigrationRate() {
+  return fetchAllStatesRateSeries("Fortzugsrate", "emigrationRate");
+}
+
 // Fetch all valid Kreise names from the index using aggregation
 export async function fetchAllKreiseNames() {
   const payload = {
@@ -786,6 +869,83 @@ export async function fetchAllKreiseInternetSpeedForState(
   }
 }
 
+async function fetchKreiseRateSeriesForState(stateName, indicatorName, rateKey) {
+  try {
+    const kreise = await fetchKreiseGeometryForState(stateName);
+
+    if (kreise.length === 0) {
+      console.warn(`No Kreise found for state: ${stateName}`);
+      return [];
+    }
+
+    const validKreiseNames = await fetchAllKreiseNames();
+    const kreiseWithMatchedNames = matchKreiseNames(kreise, validKreiseNames);
+
+    const promises = kreiseWithMatchedNames.map((k) => {
+      const payload = {
+        indexAction: "_search",
+        requestType: "post",
+        pretty: true,
+        dataForRemote: {
+          size: 100,
+          query: {
+            bool: {
+              must: [
+                { match: { "name.keyword": k.matchedName } },
+                { match: { raumbezug: "Kreise" } },
+                { match: { bereich: "Bevölkerung" } },
+                { match: { indikator: indicatorName } },
+              ],
+            },
+          },
+          sort: [{ zeitbezug: { order: "asc" } }],
+        },
+        indexName: "inkar",
+      };
+
+      return executeQuery(payload)
+        .then((result) => ({
+          name: k.displayName,
+          data: (result?.hits?.hits || []).map((hit) => ({
+            year: parseInt(hit._source?.zeitbezug, 10),
+            [rateKey]: parseFloat(hit._source?.wert || 0),
+          })),
+        }))
+        .catch(() => ({ name: k.displayName, data: [] }));
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((r) => r.data.length > 0);
+  } catch (err) {
+    console.error(`Error fetching Kreise ${rateKey} for ${stateName}:`, err);
+    return [];
+  }
+}
+
+export async function fetchAllKreiseBirthRateForState(stateName) {
+  return fetchKreiseRateSeriesForState(stateName, "Geborene", "birthRate");
+}
+
+export async function fetchAllKreiseDeathRateForState(stateName) {
+  return fetchKreiseRateSeriesForState(stateName, "Gestorbene", "deathRate");
+}
+
+export async function fetchAllKreiseImmigrationRateForState(stateName) {
+  return fetchKreiseRateSeriesForState(
+    stateName,
+    "Zuzugsrate",
+    "immigrationRate",
+  );
+}
+
+export async function fetchAllKreiseEmigrationRateForState(stateName) {
+  return fetchKreiseRateSeriesForState(
+    stateName,
+    "Fortzugsrate",
+    "emigrationRate",
+  );
+}
+
 export default {
   postToProxy,
   executeQuery,
@@ -802,7 +962,19 @@ export default {
   fetchAllStatesPopulation,
   fetchStateInternetSpeed,
   fetchAllStatesInternetSpeed,
+  fetchStateBirthRate,
+  fetchAllStatesBirthRate,
+  fetchStateDeathRate,
+  fetchAllStatesDeathRate,
+  fetchStateImmigrationRate,
+  fetchAllStatesImmigrationRate,
+  fetchStateEmigrationRate,
+  fetchAllStatesEmigrationRate,
   fetchKreiseGeometryForState,
   fetchAllKreisePopulationForState,
   fetchAllKreiseInternetSpeedForState,
+  fetchAllKreiseBirthRateForState,
+  fetchAllKreiseDeathRateForState,
+  fetchAllKreiseImmigrationRateForState,
+  fetchAllKreiseEmigrationRateForState,
 };
