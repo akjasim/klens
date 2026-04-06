@@ -108,12 +108,30 @@ const resources = {
 
       // About Page
       aboutTitle: "About DELens",
+      aboutUsBadge: "About Us",
       aboutLead:
-        "DELens aims to create a web-based tool, similar to GapMinder, to explore and understand real data across Deutschland (Germany).",
-      aboutBody1:
-        "Use the Spotify page to run curated sample queries, inspect the underlying request payload, and compare the results on a chart. This demo is intentionally small so it can be adapted to other datasets or used as a starting point for a richer analytics UI.",
+        "DELens is an interactive platform inspired by GapMinder to explore and understand real data across Germany.",
+      aboutMissionTitle: "Our Mission",
+      aboutMissionBody:
+        "Make public data easier to access, compare, and understand through visual storytelling and interactive exploration.",
+      aboutWhatYouCanDoTitle: "What You Can Do",
+      aboutFeature1:
+        "Analyze time-series indicators by place, category, and metric.",
+      aboutFeature2:
+        "Explore demographic changes across age groups and gender.",
+      aboutFeature3:
+        "Investigate state and district-level trends in urbanization-related indicators.",
+      aboutFeature4:
+        "Run custom Elasticsearch queries in the built-in Explorer.",
+      aboutTechTitle: "Technology",
+      aboutTechBody:
+        "DELens is built with React, Vite, Plotly, Three.js, and Bootstrap, with multilingual support via i18next.",
+      aboutDataTitle: "Data Access",
+      aboutDataBody:
+        "Data requests are sent through a secure Netlify function proxy that forwards validated payloads to the public Elasticsearch endpoint.",
       aboutBackHint:
-        "Need to go back? Use the button below or the navigation links above.",
+        "Use the actions below to continue exploring the platform.",
+      aboutCtaExplore: "Open Explorer",
       backToHome: "Back to Home",
 
       // NotFound Page
@@ -248,12 +266,30 @@ const resources = {
 
       // About Page
       aboutTitle: "Über DELens",
+      aboutUsBadge: "Über uns",
       aboutLead:
-        "DELens ist ein webbasiertes Tool, ähnlich wie GapMinder, um reale Daten aus Deutschland zu erkunden und zu verstehen.",
-      aboutBody1:
-        "Verwenden Sie die Spotify-Seite, um kuratierte Beispielabfragen auszuführen, die zugrunde liegende Anfrage zu prüfen und die Ergebnisse in einem Diagramm zu vergleichen. Diese Demo ist bewusst klein gehalten und kann auf andere Datensätze angepasst oder als Ausgangspunkt für eine umfangreichere Analytics-UI genutzt werden.",
+        "DELens ist eine interaktive Plattform, inspiriert von GapMinder, um reale Daten aus Deutschland zu erkunden und besser zu verstehen.",
+      aboutMissionTitle: "Unsere Mission",
+      aboutMissionBody:
+        "Oeffentliche Daten durch visuelles Storytelling und interaktive Analyse leichter zuganglich und verstaendlich machen.",
+      aboutWhatYouCanDoTitle: "Was Sie tun koennen",
+      aboutFeature1:
+        "Zeitreihenindikatoren nach Ort, Kategorie und Kennzahl analysieren.",
+      aboutFeature2:
+        "Demografische Veraenderungen nach Altersgruppen und Geschlecht untersuchen.",
+      aboutFeature3:
+        "Trends auf Bundesland- und Kreisebene zu urbanisierungsbezogenen Indikatoren erkunden.",
+      aboutFeature4:
+        "Eigene Elasticsearch-Abfragen im integrierten Explorer ausfuehren.",
+      aboutTechTitle: "Technologie",
+      aboutTechBody:
+        "DELens basiert auf React, Vite, Plotly, Three.js und Bootstrap sowie Mehrsprachigkeit mit i18next.",
+      aboutDataTitle: "Datenzugriff",
+      aboutDataBody:
+        "Datenanfragen laufen ueber eine sichere Netlify-Function als Proxy und werden an den oeffentlichen Elasticsearch-Endpunkt weitergeleitet.",
       aboutBackHint:
-        "Müssen Sie zurück? Verwenden Sie die Schaltfläche unten oder die Navigationslinks oben.",
+        "Nutzen Sie die folgenden Aktionen, um die Plattform weiter zu erkunden.",
+      aboutCtaExplore: "Explorer oeffnen",
       backToHome: "Zurück zur Startseite",
 
       // NotFound Page
