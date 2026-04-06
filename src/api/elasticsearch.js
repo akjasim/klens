@@ -647,6 +647,7 @@ export async function fetchKreiseGeometryForState(stateName) {
         displayName: hit._source?.name,
         designation: hit._source?.bezeichnung,
         geolocation: hit._source?.geolocation,
+        amtlicher_gemeindeschluessel: hit._source?.amtlicher_gemeindeschluessel,
         amtlicher_regionalschluessel: hit._source?.amtlicher_regionalschluessel,
       }));
 
@@ -673,74 +674,123 @@ export async function fetchKreiseGeometryForState(stateName) {
   }
 }
 
-function getKreiseSuffixCandidates(kreise) {
-  const suffixes = [
-    "",
-    ", Stadt",
-    ", Landkreis",
-    "Landkreis ",
-    ", Freie und Hansestadt",
-    ", Hansestadt",
-    ", Klingenstadt",
-    ", Landeshauptstadt",
-    ", Stadt der FernUniversität",
-    ", Stadtkreis",
-    ", Wissenschaftsstadt",
-    ", documenta-Stadt",
-    ", kreisfreie Stadt",
-  ];
-
-  const designation = (kreise.designation || "").toLowerCase();
-  const preferred = [];
-
-  if (designation.includes("landeshauptstadt")) {
-    preferred.push(", Landeshauptstadt");
-  }
-  if (designation.includes("landkreis")) {
-    preferred.push("Landkreis ", ", Landkreis");
-  }
-  if (designation.includes("kreisfreie") || designation.includes("stadt")) {
-    preferred.push(", Stadt", ", kreisfreie Stadt");
-  }
-
-  const orderedSuffixes = [...new Set([...preferred, ...suffixes])];
-
-  return orderedSuffixes.map((suffix) => {
-    if (suffix.startsWith("Landkreis ")) {
-      return `${suffix}${kreise.name}`;
-    }
-    if (suffix) {
-      return `${kreise.name}${suffix}`;
-    }
-    return kreise.name;
-  });
+function normalizeNumericIdentifier(value) {
+  if (value === null || value === undefined) return "";
+  return String(value).replace(/\D/g, "");
 }
 
-function matchKreiseNames(kreiseList, validKreiseNames) {
-  const validSet = new Set(validKreiseNames);
-  const usedMatches = new Set();
+function isKreisKennzifferMatch(gemeindeschluessel, kennziffer) {
+  const prefix = normalizeNumericIdentifier(gemeindeschluessel);
+  const target = normalizeNumericIdentifier(kennziffer);
+
+  if (!prefix || !target || !target.startsWith(prefix)) {
+    return false;
+  }
+
+  const rest = target.slice(prefix.length);
+  return rest.length === 0 || /^0+$/.test(rest);
+}
+
+export async function fetchAllKreiseKennzifferEntries() {
+  const payload = {
+    indexName: "inkar",
+    indexAction: "_search",
+    requestType: "post",
+    dataForRemote: {
+      size: 0,
+      aggregations: {
+        onlyAggregation: {
+          terms: {
+            field: "kennziffer",
+            size: 3000,
+          },
+          aggregations: {
+            sample: {
+              top_hits: {
+                size: 1,
+                _source: ["name", "kennziffer"],
+              },
+            },
+          },
+        },
+      },
+      query: {
+        bool: {
+          must: [{ match: { raumbezug: "Kreise" } }],
+        },
+      },
+    },
+  };
+
+  try {
+    const result = await executeQuery(payload);
+    const buckets = result?.aggregations?.onlyAggregation?.buckets || [];
+
+    return buckets
+      .map((bucket) => {
+        const source = bucket?.sample?.hits?.hits?.[0]?._source || {};
+        const kennziffer =
+          bucket?.key_as_string ||
+          normalizeNumericIdentifier(source.kennziffer || bucket?.key);
+        const name = source.name || "";
+
+        if (!kennziffer || !name) return null;
+
+        return { kennziffer: String(kennziffer), name };
+      })
+      .filter(Boolean);
+  } catch (err) {
+    console.error("Error fetching Kreise kennziffer entries:", err);
+    return [];
+  }
+}
+
+function matchKreiseByKennziffer(kreiseList, kennzifferEntries) {
+  const usedKennziffer = new Set();
 
   return kreiseList
     .map((k) => {
-      const candidates = getKreiseSuffixCandidates(k).filter((name) =>
-        validSet.has(name),
+      const candidates = kennzifferEntries.filter((entry) =>
+        isKreisKennzifferMatch(
+          k.amtlicher_gemeindeschluessel,
+          entry.kennziffer,
+        ),
       );
 
       if (candidates.length === 0) return null;
 
       const uniqueCandidate =
-        candidates.find((candidate) => !usedMatches.has(candidate)) ||
-        candidates[0];
+        candidates.find(
+          (candidate) => !usedKennziffer.has(candidate.kennziffer),
+        ) || candidates[0];
 
-      usedMatches.add(uniqueCandidate);
+      usedKennziffer.add(uniqueCandidate.kennziffer);
 
       return {
         originalName: k.name,
         displayName: k.displayName || k.name,
-        matchedName: uniqueCandidate,
+        inkarName: uniqueCandidate.name,
+        matchedKennziffer: uniqueCandidate.kennziffer,
       };
     })
     .filter(Boolean);
+}
+
+function getKreiseKennzifferQuery(matchedKennziffer) {
+  const numericKennziffer = Number(matchedKennziffer);
+
+  return {
+    bool: {
+      should: [
+        Number.isFinite(numericKennziffer)
+          ? { term: { kennziffer: numericKennziffer } }
+          : null,
+        { term: { "kennziffer.keyword": String(matchedKennziffer) } },
+        { match: { kennziffer: String(matchedKennziffer) } },
+      ].filter(Boolean),
+      minimum_should_match: 1,
+    },
+  };
 }
 
 // Fetch population data for all Kreise in a state
@@ -753,10 +803,11 @@ export async function fetchAllKreisePopulationForState(stateName) {
       return [];
     }
 
-    // Fetch all valid Kreise names from the index
-    const validKreiseNames = await fetchAllKreiseNames();
-
-    const kreiseWithMatchedNames = matchKreiseNames(kreise, validKreiseNames);
+    const kennzifferEntries = await fetchAllKreiseKennzifferEntries();
+    const kreiseWithMatchedNames = matchKreiseByKennziffer(
+      kreise,
+      kennzifferEntries,
+    );
 
     // Fetch data for each matched Kreise (one request per Kreise)
     const promises = kreiseWithMatchedNames.map((k) => {
@@ -769,7 +820,7 @@ export async function fetchAllKreisePopulationForState(stateName) {
           query: {
             bool: {
               must: [
-                { match: { "name.keyword": k.matchedName } },
+                getKreiseKennzifferQuery(k.matchedKennziffer),
                 { match: { raumbezug: "Kreise" } },
                 { match: { bereich: "Absolutzahlen" } },
                 { match: { indikator: "Bevölkerung gesamt" } },
@@ -784,12 +835,17 @@ export async function fetchAllKreisePopulationForState(stateName) {
       return executeQuery(payload)
         .then((result) => ({
           name: k.displayName,
+          inkarName: k.inkarName,
           data: (result?.hits?.hits || []).map((hit) => ({
             year: parseInt(hit._source?.zeitbezug, 10),
             population: parseFloat(hit._source?.wert || 0),
           })),
         }))
-        .catch(() => ({ name: k.displayName, data: [] }));
+        .catch(() => ({
+          name: k.displayName,
+          inkarName: k.inkarName,
+          data: [],
+        }));
     });
 
     const results = await Promise.all(promises);
@@ -819,10 +875,11 @@ export async function fetchAllKreiseInternetSpeedForState(
       return [];
     }
 
-    // Fetch all valid Kreise names from the index
-    const validKreiseNames = await fetchAllKreiseNames();
-
-    const kreiseWithMatchedNames = matchKreiseNames(kreise, validKreiseNames);
+    const kennzifferEntries = await fetchAllKreiseKennzifferEntries();
+    const kreiseWithMatchedNames = matchKreiseByKennziffer(
+      kreise,
+      kennzifferEntries,
+    );
 
     // Fetch data for each matched Kreise (one request per Kreise)
     const promises = kreiseWithMatchedNames.map((k) => {
@@ -835,7 +892,7 @@ export async function fetchAllKreiseInternetSpeedForState(
           query: {
             bool: {
               must: [
-                { match: { "name.keyword": k.matchedName } },
+                getKreiseKennzifferQuery(k.matchedKennziffer),
                 { match: { raumbezug: "Kreise" } },
                 { match: { bereich: "Verkehr und Erreichbarkeit" } },
                 { match: { indikator: speedIndicators[speedType] } },
@@ -850,12 +907,17 @@ export async function fetchAllKreiseInternetSpeedForState(
       return executeQuery(payload)
         .then((result) => ({
           name: k.displayName,
+          inkarName: k.inkarName,
           data: (result?.hits?.hits || []).map((hit) => ({
             year: parseInt(hit._source?.zeitbezug, 10),
             speed: parseFloat(hit._source?.wert || 0),
           })),
         }))
-        .catch(() => ({ name: k.displayName, data: [] }));
+        .catch(() => ({
+          name: k.displayName,
+          inkarName: k.inkarName,
+          data: [],
+        }));
     });
 
     const results = await Promise.all(promises);
@@ -869,7 +931,11 @@ export async function fetchAllKreiseInternetSpeedForState(
   }
 }
 
-async function fetchKreiseRateSeriesForState(stateName, indicatorName, rateKey) {
+async function fetchKreiseRateSeriesForState(
+  stateName,
+  indicatorName,
+  rateKey,
+) {
   try {
     const kreise = await fetchKreiseGeometryForState(stateName);
 
@@ -878,8 +944,11 @@ async function fetchKreiseRateSeriesForState(stateName, indicatorName, rateKey) 
       return [];
     }
 
-    const validKreiseNames = await fetchAllKreiseNames();
-    const kreiseWithMatchedNames = matchKreiseNames(kreise, validKreiseNames);
+    const kennzifferEntries = await fetchAllKreiseKennzifferEntries();
+    const kreiseWithMatchedNames = matchKreiseByKennziffer(
+      kreise,
+      kennzifferEntries,
+    );
 
     const promises = kreiseWithMatchedNames.map((k) => {
       const payload = {
@@ -891,7 +960,7 @@ async function fetchKreiseRateSeriesForState(stateName, indicatorName, rateKey) 
           query: {
             bool: {
               must: [
-                { match: { "name.keyword": k.matchedName } },
+                getKreiseKennzifferQuery(k.matchedKennziffer),
                 { match: { raumbezug: "Kreise" } },
                 { match: { bereich: "Bevölkerung" } },
                 { match: { indikator: indicatorName } },
@@ -906,12 +975,17 @@ async function fetchKreiseRateSeriesForState(stateName, indicatorName, rateKey) 
       return executeQuery(payload)
         .then((result) => ({
           name: k.displayName,
+          inkarName: k.inkarName,
           data: (result?.hits?.hits || []).map((hit) => ({
             year: parseInt(hit._source?.zeitbezug, 10),
             [rateKey]: parseFloat(hit._source?.wert || 0),
           })),
         }))
-        .catch(() => ({ name: k.displayName, data: [] }));
+        .catch(() => ({
+          name: k.displayName,
+          inkarName: k.inkarName,
+          data: [],
+        }));
     });
 
     const results = await Promise.all(promises);
