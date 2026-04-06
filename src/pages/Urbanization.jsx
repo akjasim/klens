@@ -9,11 +9,15 @@ import {
   fetchAllStatesInternetSpeed,
   fetchAllStatesBirthRate,
   fetchAllStatesDeathRate,
+  fetchAllStatesImmigrationRate,
+  fetchAllStatesEmigrationRate,
   fetchKreiseGeometryForState,
   fetchAllKreisePopulationForState,
   fetchAllKreiseInternetSpeedForState,
   fetchAllKreiseBirthRateForState,
   fetchAllKreiseDeathRateForState,
+  fetchAllKreiseImmigrationRateForState,
+  fetchAllKreiseEmigrationRateForState,
 } from "../api/elasticsearch";
 import { formatNumber } from "../helpers";
 
@@ -39,6 +43,8 @@ export default function Urbanization() {
   const [internetSpeedData, setInternetSpeedData] = useState([]);
   const [birthRateData, setBirthRateData] = useState([]);
   const [deathRateData, setDeathRateData] = useState([]);
+  const [immigrationRateData, setImmigrationRateData] = useState([]);
+  const [emigrationRateData, setEmigrationRateData] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
   const [selectedYear, setSelectedYear] = useState(2020);
@@ -53,6 +59,13 @@ export default function Urbanization() {
   const [speedType, setSpeedType] = useState("1000"); // '1000', '100', or '50' for internet speed
   const animationIntervalRef = useRef(null);
 
+  const rateCategories = new Set([
+    "birthRate",
+    "deathRate",
+    "immigrationRate",
+    "emigrationRate",
+  ]);
+
   // Kreise view state
   const [selectedState, setSelectedState] = useState(null); // Name of clicked state to view Kreise
   const [kreiseData, setKreiseData] = useState([]);
@@ -60,6 +73,10 @@ export default function Urbanization() {
   const [kreiseInternetSpeedData, setKreiseInternetSpeedData] = useState([]);
   const [kreiseBirthRateData, setKreiseBirthRateData] = useState([]);
   const [kreiseDeathRateData, setKreiseDeathRateData] = useState([]);
+  const [kreiseImmigrationRateData, setKreiseImmigrationRateData] = useState(
+    [],
+  );
+  const [kreiseEmigrationRateData, setKreiseEmigrationRateData] = useState([]);
   const [kreiseLoading, setKreiseLoading] = useState(false);
 
   const categoryMeta = {
@@ -91,6 +108,21 @@ export default function Urbanization() {
       heightScale: 8,
       valueKey: "deathRate",
     },
+    immigrationRate: {
+      label: "Immigration Rate",
+      subtitle: "Height = Zuzugsrate per 1,000 people | Color = Coverage Level",
+      unit: "‰",
+      heightScale: 8,
+      valueKey: "immigrationRate",
+    },
+    emigrationRate: {
+      label: "Emigration Rate",
+      subtitle:
+        "Height = Fortzugsrate per 1,000 people | Color = Coverage Level",
+      unit: "‰",
+      heightScale: 8,
+      valueKey: "emigrationRate",
+    },
   };
 
   const getCategoryMeta = (category) =>
@@ -100,6 +132,8 @@ export default function Urbanization() {
     if (category === "population") return populationData;
     if (category === "internetSpeed") return internetSpeedData;
     if (category === "birthRate") return birthRateData;
+    if (category === "immigrationRate") return immigrationRateData;
+    if (category === "emigrationRate") return emigrationRateData;
     return deathRateData;
   };
 
@@ -107,6 +141,8 @@ export default function Urbanization() {
     if (category === "population") return kreisePopulationData;
     if (category === "internetSpeed") return kreiseInternetSpeedData;
     if (category === "birthRate") return kreiseBirthRateData;
+    if (category === "immigrationRate") return kreiseImmigrationRateData;
+    if (category === "emigrationRate") return kreiseEmigrationRateData;
     return kreiseDeathRateData;
   };
 
@@ -115,6 +151,8 @@ export default function Urbanization() {
     if (category === "internetSpeed") return yearData?.speed ?? 0;
     if (category === "birthRate") return yearData?.birthRate ?? 0;
     if (category === "deathRate") return yearData?.deathRate ?? 0;
+    if (category === "immigrationRate") return yearData?.immigrationRate ?? 0;
+    if (category === "emigrationRate") return yearData?.emigrationRate ?? 0;
     return 0;
   };
 
@@ -138,10 +176,18 @@ export default function Urbanization() {
         const popData = await fetchAllStatesPopulation();
 
         // Fetch the remaining indicators in parallel
-        const [speedData, birthData, deathData] = await Promise.all([
+        const [
+          speedData,
+          birthData,
+          deathData,
+          immigrationData,
+          emigrationData,
+        ] = await Promise.all([
           fetchAllStatesInternetSpeed(speedType),
           fetchAllStatesBirthRate(),
           fetchAllStatesDeathRate(),
+          fetchAllStatesImmigrationRate(),
+          fetchAllStatesEmigrationRate(),
         ]);
 
         setStateData(states);
@@ -149,6 +195,8 @@ export default function Urbanization() {
         setInternetSpeedData(speedData);
         setBirthRateData(birthData);
         setDeathRateData(deathData);
+        setImmigrationRateData(immigrationData);
+        setEmigrationRateData(emigrationData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setDataError(err.message || "Failed to fetch data");
@@ -186,6 +234,8 @@ export default function Urbanization() {
     internetSpeedData,
     birthRateData,
     deathRateData,
+    immigrationRateData,
+    emigrationRateData,
   ]);
 
   // Fetch Kreise data when a state is selected
@@ -196,6 +246,8 @@ export default function Urbanization() {
       setKreiseInternetSpeedData({});
       setKreiseBirthRateData({});
       setKreiseDeathRateData({});
+      setKreiseImmigrationRateData({});
+      setKreiseEmigrationRateData({});
       return;
     }
 
@@ -210,12 +262,18 @@ export default function Urbanization() {
         );
         const birthData = await fetchAllKreiseBirthRateForState(selectedState);
         const deathData = await fetchAllKreiseDeathRateForState(selectedState);
+        const immigrationData =
+          await fetchAllKreiseImmigrationRateForState(selectedState);
+        const emigrationData =
+          await fetchAllKreiseEmigrationRateForState(selectedState);
 
         setKreiseData(geometry);
         setKreisePopulationData(popData);
         setKreiseInternetSpeedData(speedData);
         setKreiseBirthRateData(birthData);
         setKreiseDeathRateData(deathData);
+        setKreiseImmigrationRateData(immigrationData);
+        setKreiseEmigrationRateData(emigrationData);
       } catch (err) {
         console.error(`Error fetching Kreise data for ${selectedState}:`, err);
       } finally {
@@ -433,7 +491,9 @@ export default function Urbanization() {
           displayValue = value * 1000; // For display purposes
         } else if (
           dataCategory === "birthRate" ||
-          dataCategory === "deathRate"
+          dataCategory === "deathRate" ||
+          dataCategory === "immigrationRate" ||
+          dataCategory === "emigrationRate"
         ) {
           const population = getPopulationForEntry(
             populationData,
@@ -444,18 +504,25 @@ export default function Urbanization() {
           displayLabel =
             dataCategory === "birthRate"
               ? "Estimated births"
-              : "Estimated deaths";
+              : dataCategory === "deathRate"
+                ? "Estimated deaths"
+                : dataCategory === "immigrationRate"
+                  ? "Estimated immigrants"
+                  : "Estimated emigrants";
         } else {
           displayValue = value;
         }
       }
 
-      // Convert value to height with appropriate scaling
+      // Convert value to height with category-aware scaling.
+      // For rate indicators (per 1,000), use normalized height to avoid huge spikes.
       const heightScale = categoryInfo.heightScale;
-      const terrainHeight = Math.max(3, value * heightScale);
-
-      // Calculate normalized value for debugging
-      const normalized = (value - minValue) / (maxValue - minValue);
+      const normalized =
+        maxValue > minValue ? (value - minValue) / (maxValue - minValue) : 0;
+      const clampedNormalized = Math.max(0, Math.min(1, normalized));
+      const terrainHeight = rateCategories.has(dataCategory)
+        ? 3 + clampedNormalized * 117
+        : Math.max(3, value * heightScale);
 
       // Color by value
       const color = getColor(value);
@@ -1016,7 +1083,9 @@ export default function Urbanization() {
           displayValue = value * 1000;
         } else if (
           dataCategory === "birthRate" ||
-          dataCategory === "deathRate"
+          dataCategory === "deathRate" ||
+          dataCategory === "immigrationRate" ||
+          dataCategory === "emigrationRate"
         ) {
           const population = getPopulationForEntry(
             kreisePopulationData,
@@ -1027,15 +1096,25 @@ export default function Urbanization() {
           displayLabel =
             dataCategory === "birthRate"
               ? "Estimated births"
-              : "Estimated deaths";
+              : dataCategory === "deathRate"
+                ? "Estimated deaths"
+                : dataCategory === "immigrationRate"
+                  ? "Estimated immigrants"
+                  : "Estimated emigrants";
         } else {
           displayValue = value;
         }
       }
 
-      // Convert value to height
+      // Convert value to height with category-aware scaling.
+      // For rate indicators (per 1,000), use normalized height to avoid huge spikes.
       const heightScale = categoryInfo.heightScale;
-      const terrainHeight = Math.max(3, value * heightScale);
+      const normalized =
+        maxValue > minValue ? (value - minValue) / (maxValue - minValue) : 0;
+      const clampedNormalized = Math.max(0, Math.min(1, normalized));
+      const terrainHeight = rateCategories.has(dataCategory)
+        ? 3 + clampedNormalized * 117
+        : Math.max(3, value * heightScale);
 
       const color = getColor(value);
 
@@ -1531,58 +1610,132 @@ export default function Urbanization() {
                               >
                                 Internet Speed
                               </button>
-                              <button
-                                onClick={() => setDataCategory("birthRate")}
-                                style={{
-                                  padding: "8px 16px",
-                                  borderRadius: "4px",
-                                  border: "none",
-                                  background:
-                                    dataCategory === "birthRate"
-                                      ? "#c0392b"
-                                      : "transparent",
-                                  color:
-                                    dataCategory === "birthRate"
-                                      ? "#fff"
-                                      : "#666",
-                                  fontWeight:
-                                    dataCategory === "birthRate"
-                                      ? "bold"
-                                      : "normal",
-                                  cursor: "pointer",
-                                  fontSize: "13px",
-                                  transition: "all 0.3s ease",
-                                }}
-                                title="Birth rate data (people born per 1,000 people)"
-                              >
-                                Birth Rate
-                              </button>
-                              <button
-                                onClick={() => setDataCategory("deathRate")}
-                                style={{
-                                  padding: "8px 16px",
-                                  borderRadius: "4px",
-                                  border: "none",
-                                  background:
-                                    dataCategory === "deathRate"
-                                      ? "#34495e"
-                                      : "transparent",
-                                  color:
-                                    dataCategory === "deathRate"
-                                      ? "#fff"
-                                      : "#666",
-                                  fontWeight:
-                                    dataCategory === "deathRate"
-                                      ? "bold"
-                                      : "normal",
-                                  cursor: "pointer",
-                                  fontSize: "13px",
-                                  transition: "all 0.3s ease",
-                                }}
-                                title="Death rate data (people died per 1,000 people)"
-                              >
-                                Death Rate
-                              </button>
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  <button
+                                    onClick={() => setDataCategory("birthRate")}
+                                    style={{
+                                      padding: "8px 16px",
+                                      borderRadius: "4px",
+                                      border: "none",
+                                      background:
+                                        dataCategory === "birthRate"
+                                          ? "#c0392b"
+                                          : "transparent",
+                                      color:
+                                        dataCategory === "birthRate"
+                                          ? "#fff"
+                                          : "#666",
+                                      fontWeight:
+                                        dataCategory === "birthRate"
+                                          ? "bold"
+                                          : "normal",
+                                      cursor: "pointer",
+                                      fontSize: "13px",
+                                      transition: "all 0.3s ease",
+                                    }}
+                                    title="Birth rate data (people born per 1,000 people)"
+                                  >
+                                    Birth
+                                  </button>
+                                  <button
+                                    onClick={() => setDataCategory("deathRate")}
+                                    style={{
+                                      padding: "8px 16px",
+                                      borderRadius: "4px",
+                                      border: "none",
+                                      background:
+                                        dataCategory === "deathRate"
+                                          ? "#34495e"
+                                          : "transparent",
+                                      color:
+                                        dataCategory === "deathRate"
+                                          ? "#fff"
+                                          : "#666",
+                                      fontWeight:
+                                        dataCategory === "deathRate"
+                                          ? "bold"
+                                          : "normal",
+                                      cursor: "pointer",
+                                      fontSize: "13px",
+                                      transition: "all 0.3s ease",
+                                    }}
+                                    title="Death rate data (people died per 1,000 people)"
+                                  >
+                                    Death
+                                  </button>
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  <button
+                                    onClick={() =>
+                                      setDataCategory("immigrationRate")
+                                    }
+                                    style={{
+                                      padding: "8px 16px",
+                                      borderRadius: "4px",
+                                      border: "none",
+                                      background:
+                                        dataCategory === "immigrationRate"
+                                          ? "#2e7d32"
+                                          : "transparent",
+                                      color:
+                                        dataCategory === "immigrationRate"
+                                          ? "#fff"
+                                          : "#666",
+                                      fontWeight:
+                                        dataCategory === "immigrationRate"
+                                          ? "bold"
+                                          : "normal",
+                                      cursor: "pointer",
+                                      fontSize: "13px",
+                                      transition: "all 0.3s ease",
+                                    }}
+                                    title="Zuzugsrate data (people moving in per 1,000 people)"
+                                  >
+                                    Immigration
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setDataCategory("emigrationRate")
+                                    }
+                                    style={{
+                                      padding: "8px 16px",
+                                      borderRadius: "4px",
+                                      border: "none",
+                                      background:
+                                        dataCategory === "emigrationRate"
+                                          ? "#6c757d"
+                                          : "transparent",
+                                      color:
+                                        dataCategory === "emigrationRate"
+                                          ? "#fff"
+                                          : "#666",
+                                      fontWeight:
+                                        dataCategory === "emigrationRate"
+                                          ? "bold"
+                                          : "normal",
+                                      cursor: "pointer",
+                                      fontSize: "13px",
+                                      transition: "all 0.3s ease",
+                                    }}
+                                    title="Fortzugsrate data (people moving out per 1,000 people)"
+                                  >
+                                    Emigration
+                                  </button>
+                                </div>
+                              </div>
                             </div>
 
                             {/* Speed Tier Toggle (Internet Speed only) */}
@@ -1674,54 +1827,64 @@ export default function Urbanization() {
                                 borderRadius: "6px",
                               }}
                             >
-                              <button
-                                onClick={() => setColorScheme("heat")}
+                              <div
                                 style={{
-                                  padding: "8px 16px",
-                                  borderRadius: "4px",
-                                  border: "none",
-                                  background:
-                                    colorScheme === "heat"
-                                      ? "#ff6b35"
-                                      : "transparent",
-                                  color:
-                                    colorScheme === "heat" ? "#fff" : "#666",
-                                  fontWeight:
-                                    colorScheme === "heat" ? "bold" : "normal",
-                                  cursor: "pointer",
-                                  fontSize: "13px",
-                                  transition: "all 0.3s ease",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "4px",
                                 }}
-                                title="Warm gradient: Yellow → Orange → Red"
                               >
-                                Warm
-                              </button>
-                              <button
-                                onClick={() => setColorScheme("choropleth")}
-                                style={{
-                                  padding: "8px 16px",
-                                  borderRadius: "4px",
-                                  border: "none",
-                                  background:
-                                    colorScheme === "choropleth"
-                                      ? "#004c97"
-                                      : "transparent",
-                                  color:
-                                    colorScheme === "choropleth"
-                                      ? "#fff"
-                                      : "#666",
-                                  fontWeight:
-                                    colorScheme === "choropleth"
-                                      ? "bold"
-                                      : "normal",
-                                  cursor: "pointer",
-                                  fontSize: "13px",
-                                  transition: "all 0.3s ease",
-                                }}
-                                title="Cool gradient: Light Blue → Dark Blue"
-                              >
-                                Cool
-                              </button>
+                                <button
+                                  onClick={() => setColorScheme("heat")}
+                                  style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      colorScheme === "heat"
+                                        ? "#ff6b35"
+                                        : "transparent",
+                                    color:
+                                      colorScheme === "heat" ? "#fff" : "#666",
+                                    fontWeight:
+                                      colorScheme === "heat"
+                                        ? "bold"
+                                        : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="Warm gradient: Yellow → Orange → Red"
+                                >
+                                  Warm
+                                </button>
+                                <button
+                                  onClick={() => setColorScheme("choropleth")}
+                                  style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      colorScheme === "choropleth"
+                                        ? "#004c97"
+                                        : "transparent",
+                                    color:
+                                      colorScheme === "choropleth"
+                                        ? "#fff"
+                                        : "#666",
+                                    fontWeight:
+                                      colorScheme === "choropleth"
+                                        ? "bold"
+                                        : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="Cool gradient: Light Blue → Dark Blue"
+                                >
+                                  Cool
+                                </button>
+                              </div>
                             </div>
 
                             {/* Fast Forward Button */}
@@ -2235,58 +2398,132 @@ export default function Urbanization() {
                               borderRadius: "6px",
                             }}
                           >
-                            <button
-                              onClick={() => setDataCategory("birthRate")}
-                              style={{
-                                padding: "8px 16px",
-                                borderRadius: "4px",
-                                border: "none",
-                                background:
-                                  dataCategory === "birthRate"
-                                    ? "#c0392b"
-                                    : "transparent",
-                                color:
-                                  dataCategory === "birthRate"
-                                    ? "#fff"
-                                    : "#666",
-                                fontWeight:
-                                  dataCategory === "birthRate"
-                                    ? "bold"
-                                    : "normal",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                                transition: "all 0.3s ease",
-                              }}
-                              title="Birth rate data (people born per 1,000 people)"
-                            >
-                              Birth Rate
-                            </button>
-                            <button
-                              onClick={() => setDataCategory("deathRate")}
-                              style={{
-                                padding: "8px 16px",
-                                borderRadius: "4px",
-                                border: "none",
-                                background:
-                                  dataCategory === "deathRate"
-                                    ? "#34495e"
-                                    : "transparent",
-                                color:
-                                  dataCategory === "deathRate"
-                                    ? "#fff"
-                                    : "#666",
-                                fontWeight:
-                                  dataCategory === "deathRate"
-                                    ? "bold"
-                                    : "normal",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                                transition: "all 0.3s ease",
-                              }}
-                              title="Death rate data (people died per 1,000 people)"
-                            >
-                              Death Rate
-                            </button>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "4px",
+                                }}
+                              >
+                                <button
+                                  onClick={() => setDataCategory("birthRate")}
+                                  style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      dataCategory === "birthRate"
+                                        ? "#c0392b"
+                                        : "transparent",
+                                    color:
+                                      dataCategory === "birthRate"
+                                        ? "#fff"
+                                        : "#666",
+                                    fontWeight:
+                                      dataCategory === "birthRate"
+                                        ? "bold"
+                                        : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="Birth rate data (people born per 1,000 people)"
+                                >
+                                  Birth
+                                </button>
+                                <button
+                                  onClick={() => setDataCategory("deathRate")}
+                                  style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      dataCategory === "deathRate"
+                                        ? "#34495e"
+                                        : "transparent",
+                                    color:
+                                      dataCategory === "deathRate"
+                                        ? "#fff"
+                                        : "#666",
+                                    fontWeight:
+                                      dataCategory === "deathRate"
+                                        ? "bold"
+                                        : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="Death rate data (people died per 1,000 people)"
+                                >
+                                  Death
+                                </button>
+                              </div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "4px",
+                                }}
+                              >
+                                <button
+                                  onClick={() =>
+                                    setDataCategory("immigrationRate")
+                                  }
+                                  style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      dataCategory === "immigrationRate"
+                                        ? "#2e7d32"
+                                        : "transparent",
+                                    color:
+                                      dataCategory === "immigrationRate"
+                                        ? "#fff"
+                                        : "#666",
+                                    fontWeight:
+                                      dataCategory === "immigrationRate"
+                                        ? "bold"
+                                        : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="Zuzugsrate data (people moving in per 1,000 people)"
+                                >
+                                  Immigration
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setDataCategory("emigrationRate")
+                                  }
+                                  style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    background:
+                                      dataCategory === "emigrationRate"
+                                        ? "#6c757d"
+                                        : "transparent",
+                                    color:
+                                      dataCategory === "emigrationRate"
+                                        ? "#fff"
+                                        : "#666",
+                                    fontWeight:
+                                      dataCategory === "emigrationRate"
+                                        ? "bold"
+                                        : "normal",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    transition: "all 0.3s ease",
+                                  }}
+                                  title="Fortzugsrate data (people moving out per 1,000 people)"
+                                >
+                                  Emigration
+                                </button>
+                              </div>
+                            </div>
                           </div>
 
                           {/* Color Scheme Toggle */}
@@ -2299,53 +2536,62 @@ export default function Urbanization() {
                               borderRadius: "6px",
                             }}
                           >
-                            <button
-                              onClick={() => setColorScheme("heat")}
+                            <div
                               style={{
-                                padding: "8px 16px",
-                                borderRadius: "4px",
-                                border: "none",
-                                background:
-                                  colorScheme === "heat"
-                                    ? "#ff6b35"
-                                    : "transparent",
-                                color: colorScheme === "heat" ? "#fff" : "#666",
-                                fontWeight:
-                                  colorScheme === "heat" ? "bold" : "normal",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                                transition: "all 0.3s ease",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
                               }}
-                              title="Warm gradient: Yellow → Orange → Red"
                             >
-                              Warm
-                            </button>
-                            <button
-                              onClick={() => setColorScheme("choropleth")}
-                              style={{
-                                padding: "8px 16px",
-                                borderRadius: "4px",
-                                border: "none",
-                                background:
-                                  colorScheme === "choropleth"
-                                    ? "#004c97"
-                                    : "transparent",
-                                color:
-                                  colorScheme === "choropleth"
-                                    ? "#fff"
-                                    : "#666",
-                                fontWeight:
-                                  colorScheme === "choropleth"
-                                    ? "bold"
-                                    : "normal",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                                transition: "all 0.3s ease",
-                              }}
-                              title="Cool gradient: Light Blue → Dark Blue"
-                            >
-                              Cool
-                            </button>
+                              <button
+                                onClick={() => setColorScheme("heat")}
+                                style={{
+                                  padding: "8px 16px",
+                                  borderRadius: "4px",
+                                  border: "none",
+                                  background:
+                                    colorScheme === "heat"
+                                      ? "#ff6b35"
+                                      : "transparent",
+                                  color:
+                                    colorScheme === "heat" ? "#fff" : "#666",
+                                  fontWeight:
+                                    colorScheme === "heat" ? "bold" : "normal",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  transition: "all 0.3s ease",
+                                }}
+                                title="Warm gradient: Yellow → Orange → Red"
+                              >
+                                Warm
+                              </button>
+                              <button
+                                onClick={() => setColorScheme("choropleth")}
+                                style={{
+                                  padding: "8px 16px",
+                                  borderRadius: "4px",
+                                  border: "none",
+                                  background:
+                                    colorScheme === "choropleth"
+                                      ? "#004c97"
+                                      : "transparent",
+                                  color:
+                                    colorScheme === "choropleth"
+                                      ? "#fff"
+                                      : "#666",
+                                  fontWeight:
+                                    colorScheme === "choropleth"
+                                      ? "bold"
+                                      : "normal",
+                                  cursor: "pointer",
+                                  fontSize: "13px",
+                                  transition: "all 0.3s ease",
+                                }}
+                                title="Cool gradient: Light Blue → Dark Blue"
+                              >
+                                Cool
+                              </button>
+                            </div>
                           </div>
 
                           {/* Fast Forward Button */}
@@ -2598,11 +2844,11 @@ export default function Urbanization() {
               ) : (
                 <div>
                   <div>
-                    Rate:{" "}
+                    Rate (per 1,000):{" "}
                     <span style={{ color: "#fff", fontWeight: "500" }}>
                       {typeof hoveredState.value === "number"
-                        ? `${hoveredState.value.toFixed(1)}%`
-                        : `0.0%`}
+                        ? hoveredState.value.toFixed(1)
+                        : "0.0"}
                     </span>
                   </div>
                   <div>
