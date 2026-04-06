@@ -54,6 +54,8 @@ export default function Urbanization() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFastForward, setIsFastForward] = useState(false);
   const [colorScheme, setColorScheme] = useState("heat"); // 'heat' or 'choropleth'
+  const [isTerrain3D, setIsTerrain3D] = useState(false);
+  const prevTerrainModeRef = useRef(isTerrain3D);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dataCategory, setDataCategory] = useState("population"); // 'population' or 'internetSpeed'
   const [speedType, setSpeedType] = useState("1000"); // '1000', '100', or '50' for internet speed
@@ -311,6 +313,15 @@ export default function Urbanization() {
     }
   }, [selectedState]);
 
+  // Reset saved camera states when toggling 2D/3D so each mode can apply its own preset.
+  useEffect(() => {
+    if (prevTerrainModeRef.current !== isTerrain3D) {
+      cameraStateRef.current = null;
+      kreiseCameraStateRef.current = null;
+      prevTerrainModeRef.current = isTerrain3D;
+    }
+  }, [isTerrain3D]);
+
   // Initialize Three.js scene with 3D Terrain (Population or Internet Speed)
   useEffect(() => {
     if (
@@ -324,11 +335,11 @@ export default function Urbanization() {
     // Get the active dataset based on category
     const activeData = getStateCategoryData(dataCategory);
 
-    // Save camera state before cleanup
-    if (cameraRef.current) {
+    // Persist current camera state so year/category rerenders keep the same view.
+    if (cameraRef.current && stateControlsRef.current) {
       cameraStateRef.current = {
         position: cameraRef.current.position.clone(),
-        target: new THREE.Vector3(0, 0, 0),
+        target: stateControlsRef.current.target.clone(),
       };
     }
 
@@ -353,6 +364,7 @@ export default function Urbanization() {
     // Setup scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f4f8);
+    scene.scale.set(-1, 1, 1);
     sceneRef.current = scene;
 
     // Setup camera
@@ -360,11 +372,13 @@ export default function Urbanization() {
     const height = isFullscreen ? window.innerHeight : 600;
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 5000);
 
-    // Restore saved camera position or use default
+    // Restore previous camera state when available; otherwise use mode presets.
     if (cameraStateRef.current) {
       camera.position.copy(cameraStateRef.current.position);
+    } else if (isTerrain3D) {
+      camera.position.set(0, 220, 900);
     } else {
-      camera.position.set(25.82, 4.72, -799.57);
+      camera.position.set(0, 0, 900);
     }
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
@@ -392,7 +406,31 @@ export default function Urbanization() {
     controls.maxDistance = 1700; // Allow zooming much farther
     controls.minPolarAngle = 0; // Allow looking straight down
     controls.maxPolarAngle = Math.PI; // Allow looking from any angle
-    controls.target.set(0, 0, 0); // Center of rotation
+    if (cameraStateRef.current) {
+      controls.target.copy(cameraStateRef.current.target);
+    } else {
+      controls.target.set(0, 0, 0); // Center of rotation
+    }
+    controls.enableRotate = isTerrain3D;
+    controls.enablePan = isTerrain3D;
+    controls.enableZoom = true;
+    if (isTerrain3D) {
+      controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+      controls.touches.ONE = THREE.TOUCH.ROTATE;
+    } else {
+      controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      controls.touches.ONE = THREE.TOUCH.PAN;
+      controls.enablePan = true;
+    }
+    controls.enabled = true;
+    const handleStateControlsChange = () => {
+      const polar = controls.getPolarAngle();
+      const azimuth = controls.getAzimuthalAngle();
+      console.log(
+        `[State Camera] polar=${polar.toFixed(4)}, azimuth=${azimuth.toFixed(4)}, position=(${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`,
+      );
+    };
+    controls.addEventListener("change", handleStateControlsChange);
     controls.update();
     stateControlsRef.current = controls;
 
@@ -578,13 +616,13 @@ export default function Urbanization() {
         return;
       }
 
-      // PHASE 3: Create extruded geometry with population-based height
+      // Build either flat (2D) or terrain (3D) geometry from the same shapes.
       const geometry = new THREE.ExtrudeGeometry(shapes, {
-        depth: terrainHeight,
-        bevelEnabled: true,
-        bevelThickness: 0.3,
-        bevelSize: 0.3,
-        bevelSegments: 2,
+        depth: isTerrain3D ? terrainHeight : 2,
+        bevelEnabled: isTerrain3D,
+        bevelThickness: isTerrain3D ? 0.3 : 0,
+        bevelSize: isTerrain3D ? 0.3 : 0,
+        bevelSegments: isTerrain3D ? 2 : 0,
       });
 
       // Create material with the calculated color
@@ -631,9 +669,37 @@ export default function Urbanization() {
 
     // Animation loop
     let animationId;
+    let isDisposed = false;
+    let isSnappingTo2D = false;
+    const flat2DPosition = new THREE.Vector3(0, 0, 900);
+    const flat2DTarget = new THREE.Vector3(0, 0, 0);
+
     const animate = () => {
       animationId = requestAnimationFrame(animate);
-      controls.update();
+
+      if (isSnappingTo2D) {
+        camera.position.lerp(flat2DPosition, 0.12);
+        controls.target.lerp(flat2DTarget, 0.12);
+        camera.lookAt(controls.target);
+
+        const reachedPosition = camera.position.distanceTo(flat2DPosition) < 0.5;
+        const reachedTarget = controls.target.distanceTo(flat2DTarget) < 0.01;
+
+        if (reachedPosition && reachedTarget && !isDisposed) {
+          setIsTerrain3D(false);
+          return;
+        }
+      } else {
+        controls.update();
+
+        if (isTerrain3D) {
+          if (camera.position.z < -100) {
+            isSnappingTo2D = true;
+            controls.enabled = false;
+          }
+        }
+      }
+
       renderer.render(scene, camera);
     };
     animate();
@@ -770,6 +836,8 @@ export default function Urbanization() {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      isDisposed = true;
+      controls.removeEventListener("change", handleStateControlsChange);
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("mousemove", onMouseMove);
       renderer.domElement.removeEventListener("mousedown", onMouseDown);
@@ -798,6 +866,7 @@ export default function Urbanization() {
     selectedYear,
     availableYears,
     colorScheme,
+    isTerrain3D,
     isFullscreen,
     dataCategory,
     selectedState,
@@ -877,13 +946,14 @@ export default function Urbanization() {
 
     const activeKreiseData = getKreiseCategoryData(dataCategory);
 
-    // Save camera state before cleanup
+    // Persist current camera state so year/category rerenders keep the same view.
     if (kreiseCameraRef.current && kreiseControlsRef.current) {
       kreiseCameraStateRef.current = {
         position: kreiseCameraRef.current.position.clone(),
         target: kreiseControlsRef.current.target.clone(),
       };
     }
+
     // Clean up previous scene
     if (kreiseSceneRef.current) {
       kreiseMeshesRef.current.forEach((mesh) => {
@@ -909,6 +979,7 @@ export default function Urbanization() {
     // Setup scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f4f8);
+    scene.scale.set(-1, 1, 1);
     kreiseSceneRef.current = scene;
 
     // Setup camera
@@ -916,11 +987,13 @@ export default function Urbanization() {
     const height = isFullscreen ? window.innerHeight : 600;
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 5000);
 
-    // Restore previous camera position/target if available, else use default
+    // Restore previous camera state when available; otherwise use mode presets.
     if (kreiseCameraStateRef.current) {
       camera.position.copy(kreiseCameraStateRef.current.position);
+    } else if (isTerrain3D) {
+      camera.position.set(0, 70, 140);
     } else {
-      camera.position.set(4.29, 0.78, -49.81);
+      camera.position.set(0, 0, 140);
     }
     camera.lookAt(0, 0, 0);
     kreiseCameraRef.current = camera;
@@ -952,6 +1025,26 @@ export default function Urbanization() {
     } else {
       controls.target.set(0, 0, 0);
     }
+    controls.enableRotate = isTerrain3D;
+    controls.enablePan = isTerrain3D;
+    controls.enableZoom = true;
+    if (isTerrain3D) {
+      controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+      controls.touches.ONE = THREE.TOUCH.ROTATE;
+    } else {
+      controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      controls.touches.ONE = THREE.TOUCH.PAN;
+      controls.enablePan = true;
+    }
+    controls.enabled = true;
+    const handleKreiseControlsChange = () => {
+      const polar = controls.getPolarAngle();
+      const azimuth = controls.getAzimuthalAngle();
+      console.log(
+        `[Kreise Camera] polar=${polar.toFixed(4)}, azimuth=${azimuth.toFixed(4)}, position=(${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`,
+      );
+    };
+    controls.addEventListener("change", handleKreiseControlsChange);
     controls.update();
     kreiseControlsRef.current = controls;
 
@@ -1164,13 +1257,13 @@ export default function Urbanization() {
         return;
       }
 
-      // Create extruded geometry
+      // Build either flat (2D) or terrain (3D) geometry from the same shapes.
       const geometry = new THREE.ExtrudeGeometry(shapes, {
-        depth: terrainHeight,
-        bevelEnabled: true,
-        bevelThickness: 0.3,
-        bevelSize: 0.3,
-        bevelSegments: 2,
+        depth: isTerrain3D ? terrainHeight : 2,
+        bevelEnabled: isTerrain3D,
+        bevelThickness: isTerrain3D ? 0.3 : 0,
+        bevelSize: isTerrain3D ? 0.3 : 0,
+        bevelSegments: isTerrain3D ? 2 : 0,
       });
 
       // Create material
@@ -1216,9 +1309,37 @@ export default function Urbanization() {
 
     // Animation loop
     let animationId;
+    let isDisposed = false;
+    let isSnappingTo2D = false;
+    const flat2DPosition = new THREE.Vector3(0, 0, 140);
+    const flat2DTarget = new THREE.Vector3(0, 0, 0);
+
     const animate = () => {
       animationId = requestAnimationFrame(animate);
-      controls.update();
+
+      if (isSnappingTo2D) {
+        camera.position.lerp(flat2DPosition, 0.12);
+        controls.target.lerp(flat2DTarget, 0.12);
+        camera.lookAt(controls.target);
+
+        const reachedPosition = camera.position.distanceTo(flat2DPosition) < 0.25;
+        const reachedTarget = controls.target.distanceTo(flat2DTarget) < 0.01;
+
+        if (reachedPosition && reachedTarget && !isDisposed) {
+          setIsTerrain3D(false);
+          return;
+        }
+      } else {
+        controls.update();
+
+        if (isTerrain3D) {
+          if (camera.position.z < -100) {
+            isSnappingTo2D = true;
+            controls.enabled = false;
+          }
+        }
+      }
+
       renderer.render(scene, camera);
     };
     animate();
@@ -1290,6 +1411,8 @@ export default function Urbanization() {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      isDisposed = true;
+      controls.removeEventListener("change", handleKreiseControlsChange);
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("mousemove", onMouseMove);
       cancelAnimationFrame(animationId);
@@ -1319,6 +1442,7 @@ export default function Urbanization() {
     kreiseInternetSpeedData,
     selectedYear,
     colorScheme,
+    isTerrain3D,
     isFullscreen,
     dataCategory,
   ]);
@@ -1412,7 +1536,7 @@ export default function Urbanization() {
                         className="fw-bold mb-0"
                         style={{ color: "#2c3e50", fontSize: "1.3rem" }}
                       >
-                        🏔️ 3D {getCategoryMeta(dataCategory).label} Terrain Map
+                        {isTerrain3D ? "🏔️ 3D" : "🗺️ 2D"} {getCategoryMeta(dataCategory).label} Terrain Map
                       </h5>
                       <p
                         style={{
@@ -1426,26 +1550,46 @@ export default function Urbanization() {
                       </p>
                     </div>
 
-                    {/* Fullscreen Button */}
-                    <button
-                      onClick={() => setIsFullscreen(!isFullscreen)}
-                      style={{
-                        padding: "10px 20px",
-                        borderRadius: "6px",
-                        border: "2px solid #007bff",
-                        background: isFullscreen ? "#007bff" : "#fff",
-                        color: isFullscreen ? "#fff" : "#007bff",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: "bold",
-                        transition: "all 0.3s ease",
-                      }}
-                      title={
-                        isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"
-                      }
-                    >
-                      {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                    </button>
+                    <div style={{ display: "flex", gap: "12px" }}>
+                      <button
+                        onClick={() => setIsTerrain3D(!isTerrain3D)}
+                        style={{
+                          padding: "10px 20px",
+                          borderRadius: "6px",
+                          border: "2px solid #6f42c1",
+                          background: isTerrain3D ? "#6f42c1" : "#fff",
+                          color: isTerrain3D ? "#fff" : "#6f42c1",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                          transition: "all 0.3s ease",
+                        }}
+                        title="Toggle between flat 2D map and 3D terrain"
+                      >
+                        {isTerrain3D ? "2D" : "3D"}
+                      </button>
+
+                      {/* Fullscreen Button */}
+                      <button
+                        onClick={() => setIsFullscreen(!isFullscreen)}
+                        style={{
+                          padding: "10px 20px",
+                          borderRadius: "6px",
+                          border: "2px solid #007bff",
+                          background: isFullscreen ? "#007bff" : "#fff",
+                          color: isFullscreen ? "#fff" : "#007bff",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                          transition: "all 0.3s ease",
+                        }}
+                        title={
+                          isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"
+                        }
+                      >
+                        {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                      </button>
+                    </div>
                   </div>
 
                   {/* 3D Canvas */}
@@ -1466,35 +1610,58 @@ export default function Urbanization() {
                   >
                     {/* Fullscreen Exit Button */}
                     {isFullscreen && (
-                      <button
-                        onClick={() => setIsFullscreen(false)}
-                        style={{
-                          position: "fixed",
-                          top: "20px",
-                          right: "20px",
-                          zIndex: 10001,
-                          padding: "12px 24px",
-                          borderRadius: "8px",
-                          border: "2px solid #dc3545",
-                          background: "#fff",
-                          color: "#dc3545",
-                          fontSize: "16px",
-                          fontWeight: "bold",
-                          cursor: "pointer",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                          transition: "all 0.3s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = "#dc3545";
-                          e.target.style.color = "#fff";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = "#fff";
-                          e.target.style.color = "#dc3545";
-                        }}
-                      >
-                        Exit Fullscreen
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setIsTerrain3D(!isTerrain3D)}
+                          style={{
+                            position: "fixed",
+                            top: "20px",
+                            right: "210px",
+                            zIndex: 10001,
+                            padding: "12px 20px",
+                            borderRadius: "8px",
+                            border: "2px solid #6f42c1",
+                            background: isTerrain3D ? "#6f42c1" : "#fff",
+                            color: isTerrain3D ? "#fff" : "#6f42c1",
+                            fontSize: "16px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                            transition: "all 0.3s ease",
+                          }}
+                        >
+                          {isTerrain3D ? "2D" : "3D"}
+                        </button>
+                        <button
+                          onClick={() => setIsFullscreen(false)}
+                          style={{
+                            position: "fixed",
+                            top: "20px",
+                            right: "20px",
+                            zIndex: 10001,
+                            padding: "12px 24px",
+                            borderRadius: "8px",
+                            border: "2px solid #dc3545",
+                            background: "#fff",
+                            color: "#dc3545",
+                            fontSize: "16px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                            transition: "all 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = "#dc3545";
+                            e.target.style.color = "#fff";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = "#fff";
+                            e.target.style.color = "#dc3545";
+                          }}
+                        >
+                          Exit Fullscreen
+                        </button>
+                      </>
                     )}
                     <div
                       ref={mountRef}
@@ -2095,7 +2262,7 @@ export default function Urbanization() {
                       className="fw-bold mb-0"
                       style={{ color: "#2c3e50", fontSize: "1.3rem" }}
                     >
-                      🏔️ 3D {getCategoryMeta(dataCategory).label} Kreise Map -{" "}
+                      {isTerrain3D ? "🏔️ 3D" : "🗺️ 2D"} {getCategoryMeta(dataCategory).label} Kreise Map -{" "}
                       {selectedState}
                     </h5>
                     <p
@@ -2111,6 +2278,23 @@ export default function Urbanization() {
                   </div>
 
                   <div style={{ display: "flex", gap: "12px" }}>
+                    <button
+                      onClick={() => setIsTerrain3D(!isTerrain3D)}
+                      style={{
+                        padding: "10px 20px",
+                        borderRadius: "6px",
+                        border: "2px solid #6f42c1",
+                        background: isTerrain3D ? "#6f42c1" : "#fff",
+                        color: isTerrain3D ? "#fff" : "#6f42c1",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        transition: "all 0.3s ease",
+                      }}
+                      title="Toggle between flat 2D map and 3D terrain"
+                    >
+                      {isTerrain3D ? "2D" : "3D"}
+                    </button>
                     {/* Fullscreen Button for Kreise */}
                     <button
                       onClick={() => setIsFullscreen(!isFullscreen)}
@@ -2177,35 +2361,58 @@ export default function Urbanization() {
                 >
                   {/* Fullscreen Exit Button for Kreise */}
                   {isFullscreen && (
-                    <button
-                      onClick={() => setIsFullscreen(false)}
-                      style={{
-                        position: "fixed",
-                        top: "20px",
-                        right: "20px",
-                        zIndex: 10001,
-                        padding: "12px 24px",
-                        borderRadius: "8px",
-                        border: "2px solid #dc3545",
-                        background: "#fff",
-                        color: "#dc3545",
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        cursor: "pointer",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                        transition: "all 0.3s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = "#dc3545";
-                        e.target.style.color = "#fff";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = "#fff";
-                        e.target.style.color = "#dc3545";
-                      }}
-                    >
-                      Exit Fullscreen
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setIsTerrain3D(!isTerrain3D)}
+                        style={{
+                          position: "fixed",
+                          top: "20px",
+                          right: "210px",
+                          zIndex: 10001,
+                          padding: "12px 20px",
+                          borderRadius: "8px",
+                          border: "2px solid #6f42c1",
+                          background: isTerrain3D ? "#6f42c1" : "#fff",
+                          color: isTerrain3D ? "#fff" : "#6f42c1",
+                          fontSize: "16px",
+                          fontWeight: "bold",
+                          cursor: "pointer",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                          transition: "all 0.3s ease",
+                        }}
+                      >
+                        {isTerrain3D ? "2D" : "3D"}
+                      </button>
+                      <button
+                        onClick={() => setIsFullscreen(false)}
+                        style={{
+                          position: "fixed",
+                          top: "20px",
+                          right: "20px",
+                          zIndex: 10001,
+                          padding: "12px 24px",
+                          borderRadius: "8px",
+                          border: "2px solid #dc3545",
+                          background: "#fff",
+                          color: "#dc3545",
+                          fontSize: "16px",
+                          fontWeight: "bold",
+                          cursor: "pointer",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                          transition: "all 0.3s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = "#dc3545";
+                          e.target.style.color = "#fff";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = "#fff";
+                          e.target.style.color = "#dc3545";
+                        }}
+                      >
+                        Exit Fullscreen
+                      </button>
+                    </>
                   )}
                   <div
                     ref={kreiseMountRef}
