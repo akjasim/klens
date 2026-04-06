@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import esApi from "../api/elasticsearch";
 import {
   BarChart,
@@ -12,6 +13,7 @@ import {
 } from "recharts";
 
 export default function Explorer() {
+  const { t } = useTranslation();
   const [results, setResults] = useState({
     whiteStripes: null,
     queenBowie: null,
@@ -129,7 +131,9 @@ export default function Explorer() {
           {/* Left Column: Questions */}
           <div className="col-12 col-lg-4">
             <div className="sticky-top" style={{ top: "100px" }}>
-              <h2 className="mb-4 text-primary fw-bold">Spotify Explorer</h2>
+              <h2 className="mb-4 text-primary fw-bold">
+                {t("spotifyExplorer")}
+              </h2>
               {Object.keys(queries).map((key) => (
                 <div key={key} className="mb-3 card shadow-sm border-0">
                   <div className="card-body">
@@ -140,7 +144,7 @@ export default function Explorer() {
                       className="btn btn-primary btn-sm w-100"
                       onClick={() => fetchResult(key)}
                     >
-                      Run Query
+                      {t("runQuery")}
                     </button>
                   </div>
                 </div>
@@ -153,36 +157,42 @@ export default function Explorer() {
             {activeQuery ? (
               <>
                 <div className="mb-4">
-                  <h3 className="mb-3 text-primary fw-bold">Query Result</h3>
+                  <h3 className="mb-3 text-primary fw-bold">
+                    {t("queryResult")}
+                  </h3>
                   <div className="p-4 border-start border-4 border-primary bg-white rounded shadow-sm">
                     <strong className="text-secondary">
                       {queries[activeQuery].label}
                     </strong>
                     <p className="mt-3 fs-4 mb-0">
                       <b className="text-primary">
-                        {results[activeQuery] ?? "Loading..."}
+                        {results[activeQuery] ?? t("loading")}
                       </b>
                       <span className="text-muted ms-2 fw-normal">
-                        entries found
+                        {t("entriesFound")}
                       </span>
                     </p>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="mb-3 text-primary fw-bold">Explanation</h3>
+                  <h3 className="mb-3 text-primary fw-bold">
+                    {t("explanation")}
+                  </h3>
                   <div className="p-3 bg-white border rounded shadow-sm text-secondary">
                     {queries[activeQuery].explanation}
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="mb-3 text-primary fw-bold">Request Payload</h3>
+                  <h3 className="mb-3 text-primary fw-bold">
+                    {t("requestPayload")}
+                  </h3>
                   <pre className="bg-dark text-white p-3 rounded overflow-auto shadow-sm">
                     {JSON.stringify(
                       queries[activeQuery].data.dataForRemote,
                       null,
-                      2
+                      2,
                     )}
                   </pre>
                 </div>
@@ -256,7 +266,7 @@ export default function Explorer() {
                     </div>
                   ) : (
                     <p className="text-muted text-center py-4">
-                      Run some queries to see the chart
+                      {t("runQueriesToSeeChart")}
                     </p>
                   )}
                 </div>

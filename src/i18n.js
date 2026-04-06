@@ -68,6 +68,11 @@ const resources = {
       loadingBereich: "Loading...",
       loadingIndicators: "Loading indicators...",
       notFound: "not found",
+      failedToFetchData: "Failed to fetch data",
+      failedToLoad: "Failed to load",
+      failedToLoadPlaces: "Failed to load places",
+      failedToLoadCategory: "Failed to load category",
+      failedToLoadIndicators: "Failed to load indicators",
 
       // Home Page
       homeHeroTitle: "Discover Insights",
@@ -96,6 +101,26 @@ const resources = {
       ageGroupsCount: "Age Groups",
       timeRangeLabel: "Time Range",
       totalDataPoints: "Total Data Points",
+      populationByGender: "Population by Gender",
+      years: "Years",
+      populationMillions: "Population (M)",
+      highestPopulation: "Highest population",
+      lowestPopulation: "Lowest population",
+      totalsAggregateAgeGroups: "Totals aggregate all age groups per year.",
+      highestDrop: "Highest drop",
+      vs: "vs",
+      pause: "Pause",
+      play: "Play",
+      ageGroupDistributionMillions: "Age Group Distribution (millions)",
+      workingClassBreakdownMillions: "Working Class Breakdown (millions)",
+      maleAndFemale: "Male & Female",
+      highestTotal: "Highest total",
+      lowestTotal: "Lowest total",
+      totalsCombineMaleFemale:
+        "Totals combine male and female populations per year.",
+      bar: "Bar",
+      pie: "Pie",
+      failedToFetchDemographicsData: "Failed to fetch demographics data",
 
       // Urbanization Page
       urbanizationTitle: "Urbanization",
@@ -105,6 +130,70 @@ const resources = {
         "View population distribution across Bundesländer over time",
       urbanizationChartTitle: "Population by Bundesland",
       fetchingUrbanizationData: "Fetching urbanization data...",
+      urbanizationPopulation: "Population",
+      urbanizationPopulationSubtitle: "Height = Population | Color = Density",
+      urbanizationInternetSpeed: "Internet Speed",
+      urbanizationInternetSpeedSubtitle:
+        "Height = Availability % | Color = Coverage Level",
+      urbanizationBirthRate: "Birth Rate",
+      urbanizationBirthRateSubtitle:
+        "Height = Births per 1,000 people | Color = Coverage Level",
+      urbanizationDeathRate: "Death Rate",
+      urbanizationDeathRateSubtitle:
+        "Height = Deaths per 1,000 people | Color = Coverage Level",
+      urbanizationImmigrationRate: "Immigration Rate",
+      urbanizationImmigrationRateSubtitle:
+        "Height = Zuzugsrate per 1,000 people | Color = Coverage Level",
+      urbanizationEmigrationRate: "Emigration Rate",
+      urbanizationEmigrationRateSubtitle:
+        "Height = Fortzugsrate per 1,000 people | Color = Coverage Level",
+      urbanizationEstimatedBirths: "Estimated births",
+      urbanizationEstimatedDeaths: "Estimated deaths",
+      urbanizationEstimatedImmigrants: "Estimated immigrants",
+      urbanizationEstimatedEmigrants: "Estimated emigrants",
+      urbanizationToggleTerrainTitle:
+        "Toggle between flat 2D map and 3D terrain",
+      urbanizationEnterFullscreen: "Enter Fullscreen",
+      urbanizationExitFullscreen: "Exit Fullscreen",
+      urbanizationFullscreen: "Fullscreen",
+      urbanizationPopulationDataTitle: "Population data",
+      urbanizationInternetSpeedDataTitle: "Internet speed data",
+      urbanizationSpeed50Title: "50 Mbit/s availability",
+      urbanizationSpeed100Title: "100 Mbit/s availability",
+      urbanizationSpeed1000Title: "1000 Mbit/s (1 Gbit/s) availability",
+      urbanizationBirthRateDataTitle:
+        "Birth rate data (people born per 1,000 people)",
+      urbanizationDeathRateDataTitle:
+        "Death rate data (people died per 1,000 people)",
+      urbanizationImmigrationRateDataTitle:
+        "Zuzugsrate data (people moving in per 1,000 people)",
+      urbanizationEmigrationRateDataTitle:
+        "Fortzugsrate data (people moving out per 1,000 people)",
+      urbanizationBirth: "Birth",
+      urbanizationDeath: "Death",
+      urbanizationImmigration: "Immigration",
+      urbanizationEmigration: "Emigration",
+      urbanizationWarmGradientTitle: "Warm gradient: Yellow -> Orange -> Red",
+      urbanizationCoolGradientTitle: "Cool gradient: Light Blue -> Dark Blue",
+      urbanizationWarm: "Warm",
+      urbanizationCool: "Cool",
+      urbanizationFastForwardTitle: "Fast forward (5x speed, infinite loop)",
+      urbanizationCategoryLabel: "Category",
+      urbanizationColorScaleLabel: "Color Scale",
+      urbanizationColorScaleWarm: "Yellow (Low) -> Red (High)",
+      urbanizationColorScaleCool: "Light Blue (Low) -> Dark Blue (High)",
+      urbanizationHoverStatesHint: "Hover over states to see details",
+      urbanizationKreiseSubtitle:
+        "Kreise (districts) separated by administrative borders",
+      urbanizationBackToStateViewTitle: "Back to state-level view",
+      urbanizationBackToStates: "Back to States",
+      urbanizationHoverKreiseHint:
+        "Hover over Kreise to see details. Click states on the main map to zoom in.",
+      urbanizationLoadingKreiseFor: "Loading Kreise data for",
+      urbanizationNoData: "No data",
+      urbanizationNoKreiseDataFor: "No Kreise data found for",
+      urbanizationAvailability: "availability",
+      urbanizationRatePerThousand: "Rate (per 1,000)",
 
       // About Page
       aboutTitle: "About DELens",
@@ -159,6 +248,21 @@ const resources = {
       responsePlaceholder: "Response will appear here after submitting.",
       history: "History",
       deleteAllHistory: "Delete all history",
+      invalidJsonInDataForRemote: "Invalid JSON in dataForRemote",
+      cannotFormatInvalidJson: "Cannot format: invalid JSON",
+      copied: "Copied!",
+      clipboardNotSupported: "Clipboard not supported",
+      copyFailed: "Copy failed",
+      requestFailed: "Request failed",
+      optional: "optional",
+      myQueryName: "My Query Name",
+      spotifyExplorer: "Spotify Explorer",
+      runQuery: "Run Query",
+      queryResult: "Query Result",
+      entriesFound: "entries found",
+      explanation: "Explanation",
+      requestPayload: "Request Payload",
+      runQueriesToSeeChart: "Run some queries to see the chart",
     },
   },
   de: {
@@ -226,6 +330,11 @@ const resources = {
       loadingBereich: "Wird geladen...",
       loadingIndicators: "Indikatoren werden geladen...",
       notFound: "nicht gefunden",
+      failedToFetchData: "Daten konnten nicht geladen werden",
+      failedToLoad: "Laden fehlgeschlagen",
+      failedToLoadPlaces: "Orte konnten nicht geladen werden",
+      failedToLoadCategory: "Kategorie konnte nicht geladen werden",
+      failedToLoadIndicators: "Indikatoren konnten nicht geladen werden",
 
       // Home Page
       homeHeroTitle: "Erkenntnisse entdecken",
@@ -254,6 +363,29 @@ const resources = {
       ageGroupsCount: "Altersgruppen",
       timeRangeLabel: "Zeitraum",
       totalDataPoints: "Gesamtdatenpunkte",
+      populationByGender: "Bevoelkerung nach Geschlecht",
+      years: "Jahre",
+      populationMillions: "Bevoelkerung (M)",
+      highestPopulation: "Hoechste Bevoelkerung",
+      lowestPopulation: "Niedrigste Bevoelkerung",
+      totalsAggregateAgeGroups:
+        "Summen aggregieren alle Altersgruppen pro Jahr.",
+      highestDrop: "Groesster Rueckgang",
+      vs: "vs",
+      pause: "Pause",
+      play: "Play",
+      ageGroupDistributionMillions: "Verteilung der Altersgruppen (Millionen)",
+      workingClassBreakdownMillions:
+        "Aufschluesselung der Erwerbsbevoelkerung (Millionen)",
+      maleAndFemale: "Maennlich & Weiblich",
+      highestTotal: "Hoechste Gesamtzahl",
+      lowestTotal: "Niedrigste Gesamtzahl",
+      totalsCombineMaleFemale:
+        "Summen kombinieren maennliche und weibliche Bevoelkerung pro Jahr.",
+      bar: "Balken",
+      pie: "Kreis",
+      failedToFetchDemographicsData:
+        "Demografiedaten konnten nicht geladen werden",
 
       // Urbanization Page
       urbanizationTitle: "Urbanisierung",
@@ -263,6 +395,71 @@ const resources = {
         "Sehen Sie die Bevölkerungsverteilung über Bundesländer im Laufe der Zeit",
       urbanizationChartTitle: "Bevölkerung nach Bundesland",
       fetchingUrbanizationData: "Urbanisierungsdaten werden abgerufen...",
+      urbanizationPopulation: "Bevoelkerung",
+      urbanizationPopulationSubtitle: "Hoehe = Bevoelkerung | Farbe = Dichte",
+      urbanizationInternetSpeed: "Internetgeschwindigkeit",
+      urbanizationInternetSpeedSubtitle:
+        "Hoehe = Verfuegbarkeit % | Farbe = Abdeckungsgrad",
+      urbanizationBirthRate: "Geburtenrate",
+      urbanizationBirthRateSubtitle:
+        "Hoehe = Geburten pro 1.000 Personen | Farbe = Abdeckungsgrad",
+      urbanizationDeathRate: "Sterberate",
+      urbanizationDeathRateSubtitle:
+        "Hoehe = Sterbefaelle pro 1.000 Personen | Farbe = Abdeckungsgrad",
+      urbanizationImmigrationRate: "Zuzugsrate",
+      urbanizationImmigrationRateSubtitle:
+        "Hoehe = Zuzugsrate pro 1.000 Personen | Farbe = Abdeckungsgrad",
+      urbanizationEmigrationRate: "Fortzugsrate",
+      urbanizationEmigrationRateSubtitle:
+        "Hoehe = Fortzugsrate pro 1.000 Personen | Farbe = Abdeckungsgrad",
+      urbanizationEstimatedBirths: "Geschaetzte Geburten",
+      urbanizationEstimatedDeaths: "Geschaetzte Sterbefaelle",
+      urbanizationEstimatedImmigrants: "Geschaetzte Zugezogene",
+      urbanizationEstimatedEmigrants: "Geschaetzte Fortgezogene",
+      urbanizationToggleTerrainTitle:
+        "Zwischen flacher 2D-Karte und 3D-Gelaende wechseln",
+      urbanizationEnterFullscreen: "Vollbild starten",
+      urbanizationExitFullscreen: "Vollbild beenden",
+      urbanizationFullscreen: "Vollbild",
+      urbanizationPopulationDataTitle: "Bevoelkerungsdaten",
+      urbanizationInternetSpeedDataTitle: "Internetgeschwindigkeitsdaten",
+      urbanizationSpeed50Title: "50 Mbit/s Verfuegbarkeit",
+      urbanizationSpeed100Title: "100 Mbit/s Verfuegbarkeit",
+      urbanizationSpeed1000Title: "1000 Mbit/s (1 Gbit/s) Verfuegbarkeit",
+      urbanizationBirthRateDataTitle:
+        "Geburtenrate (Geborene pro 1.000 Personen)",
+      urbanizationDeathRateDataTitle:
+        "Sterberate (Gestorbene pro 1.000 Personen)",
+      urbanizationImmigrationRateDataTitle:
+        "Zuzugsrate (Zuzuege pro 1.000 Personen)",
+      urbanizationEmigrationRateDataTitle:
+        "Fortzugsrate (Fortzuege pro 1.000 Personen)",
+      urbanizationBirth: "Geburt",
+      urbanizationDeath: "Tod",
+      urbanizationImmigration: "Zuzug",
+      urbanizationEmigration: "Fortzug",
+      urbanizationWarmGradientTitle: "Warmer Verlauf: Gelb -> Orange -> Rot",
+      urbanizationCoolGradientTitle: "Kuehler Verlauf: Hellblau -> Dunkelblau",
+      urbanizationWarm: "Warm",
+      urbanizationCool: "Kuehl",
+      urbanizationFastForwardTitle: "Schneller Vorlauf (5x, Endlosschleife)",
+      urbanizationCategoryLabel: "Kategorie",
+      urbanizationColorScaleLabel: "Farbskala",
+      urbanizationColorScaleWarm: "Gelb (Niedrig) -> Rot (Hoch)",
+      urbanizationColorScaleCool: "Hellblau (Niedrig) -> Dunkelblau (Hoch)",
+      urbanizationHoverStatesHint:
+        "Mit der Maus ueber Bundeslaender fahren, um Details zu sehen",
+      urbanizationKreiseSubtitle:
+        "Kreise, getrennt durch administrative Grenzen",
+      urbanizationBackToStateViewTitle: "Zurueck zur Bundesland-Ansicht",
+      urbanizationBackToStates: "Zurueck zu den Bundeslaendern",
+      urbanizationHoverKreiseHint:
+        "Mit der Maus ueber Kreise fahren, um Details zu sehen. Klicken Sie in der Hauptkarte auf Bundeslaender zum Hineinzoomen.",
+      urbanizationLoadingKreiseFor: "Kreise-Daten werden geladen fuer",
+      urbanizationNoData: "Keine Daten",
+      urbanizationNoKreiseDataFor: "Keine Kreis-Daten gefunden fuer",
+      urbanizationAvailability: "Verfuegbarkeit",
+      urbanizationRatePerThousand: "Rate (pro 1.000)",
 
       // About Page
       aboutTitle: "Über DELens",
@@ -317,6 +514,22 @@ const resources = {
       responsePlaceholder: "Die Antwort erscheint nach dem Absenden hier.",
       history: "Verlauf",
       deleteAllHistory: "Gesamten Verlauf löschen",
+      invalidJsonInDataForRemote: "Ungueltiges JSON in dataForRemote",
+      cannotFormatInvalidJson: "Formatieren nicht moeglich: ungueltiges JSON",
+      copied: "Kopiert!",
+      clipboardNotSupported: "Zwischenablage wird nicht unterstuetzt",
+      copyFailed: "Kopieren fehlgeschlagen",
+      requestFailed: "Anfrage fehlgeschlagen",
+      optional: "optional",
+      myQueryName: "Mein Abfragename",
+      spotifyExplorer: "Spotify Explorer",
+      runQuery: "Abfrage starten",
+      queryResult: "Abfrageergebnis",
+      entriesFound: "Eintraege gefunden",
+      explanation: "Erklaerung",
+      requestPayload: "Anfrage-Payload",
+      runQueriesToSeeChart:
+        "Fuehren Sie Abfragen aus, um das Diagramm zu sehen",
     },
   },
 };

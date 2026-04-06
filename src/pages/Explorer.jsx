@@ -50,7 +50,7 @@ export default function ExplorerForm() {
     try {
       return JSON.parse(text);
     } catch (e) {
-      throw new Error("Invalid JSON in dataForRemote: " + e.message);
+      throw new Error(`${t("invalidJsonInDataForRemote")}: ${e.message}`);
     }
   }
 
@@ -64,7 +64,7 @@ export default function ExplorerForm() {
       setDataForRemoteText(JSON.stringify(parsed, null, 2));
       setError(null);
     } catch (e) {
-      setError("Cannot format: invalid JSON");
+      setError(t("cannotFormatInvalidJson"));
     }
   }
 
@@ -77,12 +77,12 @@ export default function ExplorerForm() {
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
-        setCopyFeedback("Copied!");
+        setCopyFeedback(t("copied"));
       } else {
-        throw new Error("Clipboard not supported");
+        throw new Error(t("clipboardNotSupported"));
       }
     } catch (copyErr) {
-      setCopyFeedback("Copy failed");
+      setCopyFeedback(t("copyFailed"));
       console.error(copyErr);
     } finally {
       setTimeout(() => setCopyFeedback(""), 2000);
@@ -171,7 +171,7 @@ export default function ExplorerForm() {
         setHistory((prev) => [historyEntry, ...prev].slice(0, 25));
       }
     } catch (err) {
-      setError(err.message || "Request failed");
+      setError(err.message || t("requestFailed"));
     } finally {
       setLoading(false);
     }
@@ -279,7 +279,7 @@ export default function ExplorerForm() {
                 className="form-control form-control-sm"
                 value={additionalPath}
                 onChange={(e) => setAdditionalPath(e.target.value)}
-                placeholder="optional"
+                placeholder={t("optional")}
                 style={{ maxWidth: 420 }}
               />
             </div>
@@ -292,7 +292,7 @@ export default function ExplorerForm() {
                 className="form-control form-control-sm"
                 value={saveAsName}
                 onChange={(e) => setSaveAsName(e.target.value)}
-                placeholder="My Query Name"
+                placeholder={t("myQueryName")}
                 style={{ maxWidth: 420 }}
               />
             </div>

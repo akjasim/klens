@@ -108,7 +108,7 @@ export default function DemographicIndicator() {
         setGenderData(transformedGender);
         setShowChart(true);
       } catch (err) {
-        setDataError(err.message || "Failed to fetch demographics data");
+        setDataError(err.message || t("failedToFetchDemographicsData"));
       } finally {
         setDataLoading(false);
       }
@@ -758,7 +758,7 @@ export default function DemographicIndicator() {
                     </div>
                     <div>
                       <label className="form-label mb-1 small text-muted">
-                        Place
+                        {t("place")}
                       </label>
                       <select
                         className="form-select form-select-sm"
@@ -812,7 +812,7 @@ export default function DemographicIndicator() {
                           transition: "all 0.2s ease",
                         }}
                       >
-                        Population by Age Group
+                        {t("populationByAgeGroup")}
                       </button>
                     </li>
                     <li className="nav-item">
@@ -837,7 +837,7 @@ export default function DemographicIndicator() {
                           transition: "all 0.2s ease",
                         }}
                       >
-                        Population by Gender
+                        {t("populationByGender")}
                       </button>
                     </li>
                   </ul>
@@ -860,54 +860,55 @@ export default function DemographicIndicator() {
                           <div className="small">
                             <div className="mb-2 d-flex flex-wrap gap-2 align-items-center">
                               <span className="badge bg-primary text-light">
-                                Age groups
+                                {t("ageGroupsCount")}
                               </span>
                               <span className="badge bg-secondary text-light">
                                 {years.length
                                   ? `${firstYear} – ${latestYear}`
-                                  : "Years"}
+                                  : t("years")}
                               </span>
                               <span className="badge bg-dark text-light">
-                                Population (M)
+                                {t("populationMillions")}
                               </span>
                             </div>
 
                             <div className="row g-2 mb-2">
                               <div className="col-md-6">
                                 <div className="mb-2">
-                                  <strong>Highest population:</strong>{" "}
+                                  <strong>{t("highestPopulation")}:</strong>{" "}
                                   {highestTotal.year} ·{" "}
                                   {highestTotal.total.toFixed(1)}M
                                 </div>
                                 <div className="mb-2">
-                                  <strong>Lowest population:</strong>{" "}
+                                  <strong>{t("lowestPopulation")}:</strong>{" "}
                                   {lowestTotal.year} ·{" "}
                                   {lowestTotal.total.toFixed(1)}M
                                 </div>
                                 <div className="text-muted fst-italic">
-                                  Totals aggregate all age groups per year.
+                                  {t("totalsAggregateAgeGroups")}
                                 </div>
                               </div>
                               <div className="col-md-6">
                                 {highestSpike && (
                                   <div className="mb-2">
-                                    <strong>Highest spike:</strong>{" "}
+                                    <strong>{t("highestSpike")}:</strong>{" "}
                                     <span className="text-success">
                                       {(highestSpike.delta >= 0 ? "+" : "") +
                                         highestSpike.delta.toFixed(1)}
                                       M
                                     </span>{" "}
-                                    in {highestSpike.to} (vs {highestSpike.from}
-                                    )
+                                    {t("in")} {highestSpike.to} ({t("vs")}{" "}
+                                    {highestSpike.from})
                                   </div>
                                 )}
                                 {highestDrop && (
                                   <div>
-                                    <strong>Highest drop:</strong>{" "}
+                                    <strong>{t("highestDrop")}:</strong>{" "}
                                     <span className="text-danger">
                                       {highestDrop.delta.toFixed(1)}M
                                     </span>{" "}
-                                    in {highestDrop.to} (vs {highestDrop.from})
+                                    {t("in")} {highestDrop.to} ({t("vs")}{" "}
+                                    {highestDrop.from})
                                   </div>
                                 )}
                               </div>
@@ -936,7 +937,7 @@ export default function DemographicIndicator() {
                                 setIsAgeAnimating((prev) => !prev);
                               }}
                             >
-                              {isAgeAnimating ? "Pause" : "Play"}
+                              {isAgeAnimating ? t("pause") : t("play")}
                             </button>
 
                             <div className="d-flex gap-2">
@@ -984,7 +985,7 @@ export default function DemographicIndicator() {
                           },
                           barmode: "group",
                           xaxis: {
-                            title: "Age Group",
+                            title: t("ageGroup"),
                             tickfont: { size: 12, color: "#555" },
                             showgrid: true,
                             gridwidth: 1,
@@ -993,7 +994,7 @@ export default function DemographicIndicator() {
                             categoryarray: broadAgeGroups,
                           },
                           yaxis: {
-                            title: "Population (millions)",
+                            title: t("populationMillions"),
                             autorange: false,
                             range: [0, yAxisMax],
                             dtick: yAxisTick,
@@ -1036,7 +1037,7 @@ export default function DemographicIndicator() {
                             data={ageGroupPieTraces}
                             layout={{
                               title: {
-                                text: "Age Group Distribution (millions)",
+                                text: t("ageGroupDistributionMillions"),
                                 font: {
                                   size: 18,
                                   color: "#2c3e50",
@@ -1076,7 +1077,7 @@ export default function DemographicIndicator() {
                             data={classPieTraces}
                             layout={{
                               title: {
-                                text: "Working Class Breakdown (millions)",
+                                text: t("workingClassBreakdownMillions"),
                                 font: {
                                   size: 18,
                                   color: "#2c3e50",
@@ -1120,56 +1121,55 @@ export default function DemographicIndicator() {
                           <div className="small">
                             <div className="mb-2 d-flex flex-wrap gap-2 align-items-center">
                               <span className="badge bg-primary text-light">
-                                Male & Female
+                                {t("maleAndFemale")}
                               </span>
                               <span className="badge bg-secondary text-light">
                                 {genderYears.length
                                   ? `${firstGenderYearData} – ${latestGenderYear}`
-                                  : "Years"}
+                                  : t("years")}
                               </span>
                               <span className="badge bg-dark text-light">
-                                Population
+                                {t("population")}
                               </span>
                             </div>
 
                             <div className="row g-2 mb-2">
                               <div className="col-md-6">
                                 <div className="mb-2">
-                                  <strong>Highest total:</strong>{" "}
+                                  <strong>{t("highestTotal")}:</strong>{" "}
                                   {highestGenderTotal.year} ·{" "}
                                   {formatNumber(highestGenderTotal.total)}
                                 </div>
                                 <div className="mb-2">
-                                  <strong>Lowest total:</strong>{" "}
+                                  <strong>{t("lowestTotal")}:</strong>{" "}
                                   {lowestGenderTotal.year} ·{" "}
                                   {formatNumber(lowestGenderTotal.total)}
                                 </div>
                                 <div className="text-muted fst-italic">
-                                  Totals combine male and female populations per
-                                  year.
+                                  {t("totalsCombineMaleFemale")}
                                 </div>
                               </div>
                               <div className="col-md-6">
                                 {highestGenderSpike && (
                                   <div className="mb-2">
-                                    <strong>Highest spike:</strong>{" "}
+                                    <strong>{t("highestSpike")}:</strong>{" "}
                                     <span className="text-success">
                                       {(highestGenderSpike.delta >= 0
                                         ? "+"
                                         : "") +
                                         formatNumber(highestGenderSpike.delta)}
                                     </span>{" "}
-                                    in {highestGenderSpike.to} (vs{" "}
+                                    {t("in")} {highestGenderSpike.to} ({t("vs")}{" "}
                                     {highestGenderSpike.from})
                                   </div>
                                 )}
                                 {highestGenderDrop && (
                                   <div>
-                                    <strong>Highest drop:</strong>{" "}
+                                    <strong>{t("highestDrop")}:</strong>{" "}
                                     <span className="text-danger">
                                       {formatNumber(highestGenderDrop.delta)}
                                     </span>{" "}
-                                    in {highestGenderDrop.to} (vs{" "}
+                                    {t("in")} {highestGenderDrop.to} ({t("vs")}{" "}
                                     {highestGenderDrop.from})
                                   </div>
                                 )}
@@ -1194,7 +1194,7 @@ export default function DemographicIndicator() {
                             className="btn btn-sm btn-outline-primary"
                             htmlFor="genderBar"
                           >
-                            Bar
+                            {t("bar")}
                           </label>
                           <input
                             type="radio"
@@ -1209,7 +1209,7 @@ export default function DemographicIndicator() {
                             className="btn btn-sm btn-outline-primary"
                             htmlFor="genderPie"
                           >
-                            Pie
+                            {t("pie")}
                           </label>
                         </div>
                       </div>

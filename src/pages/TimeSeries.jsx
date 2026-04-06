@@ -44,7 +44,7 @@ export default function TimeSeries() {
         raumbezug,
         placeName,
         bereich,
-        indicator
+        indicator,
       );
       // Transform ES hits to { year, value } format
       // ES documents have 'zeitbezug' (time reference) and 'wert' (value)
@@ -62,7 +62,7 @@ export default function TimeSeries() {
       setTimeSeriesData(transformed);
       setShowChart(true);
     } catch (err) {
-      setDataError(err.message || "Failed to fetch data");
+      setDataError(err.message || t("failedToFetchData"));
     } finally {
       setDataLoading(false);
     }
@@ -88,7 +88,7 @@ export default function TimeSeries() {
         if (!cancelled) setRaumbezugOptions(terms);
       })
       .catch((err) => {
-        if (!cancelled) setRaumError(err.message || "Failed to load");
+        if (!cancelled) setRaumError(err.message || t("failedToLoad"));
       })
       .finally(() => {
         if (!cancelled) setRaumLoading(false);
@@ -116,7 +116,7 @@ export default function TimeSeries() {
         if (!cancelled) setPlaceOptions(terms);
       })
       .catch((err) => {
-        if (!cancelled) setPlaceError(err.message || "Failed to load places");
+        if (!cancelled) setPlaceError(err.message || t("failedToLoadPlaces"));
       })
       .finally(() => {
         if (!cancelled) setPlaceLoading(false);
@@ -146,7 +146,7 @@ export default function TimeSeries() {
       })
       .catch((err) => {
         if (!cancelled)
-          setBereichError(err.message || "Failed to load bereich");
+          setBereichError(err.message || t("failedToLoadCategory"));
       })
       .finally(() => {
         if (!cancelled) setBereichLoading(false);
@@ -176,7 +176,7 @@ export default function TimeSeries() {
       })
       .catch((err) => {
         if (!cancelled)
-          setIndicatorError(err.message || "Failed to load indicators");
+          setIndicatorError(err.message || t("failedToLoadIndicators"));
       })
       .finally(() => {
         if (!cancelled) setIndicatorLoading(false);
@@ -315,7 +315,7 @@ export default function TimeSeries() {
                           <option
                             value=""
                             disabled
-                          >{`Error: ${raumError}`}</option>
+                          >{`${t("error")}: ${raumError}`}</option>
                         )}
                         {!raumLoading &&
                           !raumError &&
@@ -350,10 +350,10 @@ export default function TimeSeries() {
                           {!raumbezug
                             ? t("firstSelectRaumbezug")
                             : placeLoading
-                            ? t("loadingPlaces")
-                            : placeError
-                            ? `Error: ${placeError}`
-                            : t("selectPlace") + "..."}
+                              ? t("loadingPlaces")
+                              : placeError
+                                ? `${t("error")}: ${placeError}`
+                                : t("selectPlace") + "..."}
                         </option>
                         {!placeLoading &&
                           !placeError &&
@@ -389,10 +389,10 @@ export default function TimeSeries() {
                           {!placeName
                             ? t("selectPlaceFirst")
                             : bereichLoading
-                            ? t("loadingBereich")
-                            : bereichError
-                            ? `Error: ${bereichError}`
-                            : t("selectBereich") + "..."}
+                              ? t("loadingBereich")
+                              : bereichError
+                                ? `${t("error")}: ${bereichError}`
+                                : t("selectBereich") + "..."}
                         </option>
                         {!bereichLoading &&
                           !bereichError &&
@@ -434,12 +434,13 @@ export default function TimeSeries() {
                           {!bereich
                             ? t("selectBereichFirst")
                             : indicatorLoading
-                            ? t("loadingIndicators")
-                            : indicatorError
-                            ? `Error: ${indicatorError}`
-                            : indicatorOptions && indicatorOptions.length === 0
-                            ? t("indicator") + " " + t("notFound")
-                            : t("selectIndicator") + "..."}
+                              ? t("loadingIndicators")
+                              : indicatorError
+                                ? `${t("error")}: ${indicatorError}`
+                                : indicatorOptions &&
+                                    indicatorOptions.length === 0
+                                  ? t("indicator") + " " + t("notFound")
+                                  : t("selectIndicator") + "..."}
                         </option>
                         {!indicatorLoading &&
                           !indicatorError &&

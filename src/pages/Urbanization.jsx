@@ -83,44 +83,43 @@ export default function Urbanization() {
 
   const categoryMeta = {
     population: {
-      label: "Population",
-      subtitle: "Height = Population | Color = Density",
+      label: t("urbanizationPopulation"),
+      subtitle: t("urbanizationPopulationSubtitle"),
       unit: "k",
       heightScale: 0.05,
       valueKey: "population",
     },
     internetSpeed: {
-      label: "Internet Speed",
-      subtitle: "Height = Availability % | Color = Coverage Level",
+      label: t("urbanizationInternetSpeed"),
+      subtitle: t("urbanizationInternetSpeedSubtitle"),
       unit: "%",
       heightScale: 5,
       valueKey: "speed",
     },
     birthRate: {
-      label: "Birth Rate",
-      subtitle: "Height = Births per 1,000 people | Color = Coverage Level",
+      label: t("urbanizationBirthRate"),
+      subtitle: t("urbanizationBirthRateSubtitle"),
       unit: "‰",
       heightScale: 8,
       valueKey: "birthRate",
     },
     deathRate: {
-      label: "Death Rate",
-      subtitle: "Height = Deaths per 1,000 people | Color = Coverage Level",
+      label: t("urbanizationDeathRate"),
+      subtitle: t("urbanizationDeathRateSubtitle"),
       unit: "‰",
       heightScale: 8,
       valueKey: "deathRate",
     },
     immigrationRate: {
-      label: "Immigration Rate",
-      subtitle: "Height = Zuzugsrate per 1,000 people | Color = Coverage Level",
+      label: t("urbanizationImmigrationRate"),
+      subtitle: t("urbanizationImmigrationRateSubtitle"),
       unit: "‰",
       heightScale: 8,
       valueKey: "immigrationRate",
     },
     emigrationRate: {
-      label: "Emigration Rate",
-      subtitle:
-        "Height = Fortzugsrate per 1,000 people | Color = Coverage Level",
+      label: t("urbanizationEmigrationRate"),
+      subtitle: t("urbanizationEmigrationRateSubtitle"),
       unit: "‰",
       heightScale: 8,
       valueKey: "emigrationRate",
@@ -201,7 +200,7 @@ export default function Urbanization() {
         setEmigrationRateData(emigrationData);
       } catch (err) {
         console.error("Error fetching data:", err);
-        setDataError(err.message || "Failed to fetch data");
+        setDataError(err.message || t("failedToFetchData"));
       } finally {
         setDataLoading(false);
       }
@@ -541,12 +540,12 @@ export default function Urbanization() {
           displayValue = (population * value) / 1000;
           displayLabel =
             dataCategory === "birthRate"
-              ? "Estimated births"
+              ? t("urbanizationEstimatedBirths")
               : dataCategory === "deathRate"
-                ? "Estimated deaths"
+                ? t("urbanizationEstimatedDeaths")
                 : dataCategory === "immigrationRate"
-                  ? "Estimated immigrants"
-                  : "Estimated emigrants";
+                  ? t("urbanizationEstimatedImmigrants")
+                  : t("urbanizationEstimatedEmigrants");
         } else {
           displayValue = value;
         }
@@ -1190,12 +1189,12 @@ export default function Urbanization() {
           displayValue = (population * value) / 1000;
           displayLabel =
             dataCategory === "birthRate"
-              ? "Estimated births"
+              ? t("urbanizationEstimatedBirths")
               : dataCategory === "deathRate"
-                ? "Estimated deaths"
+                ? t("urbanizationEstimatedDeaths")
                 : dataCategory === "immigrationRate"
-                  ? "Estimated immigrants"
-                  : "Estimated emigrants";
+                  ? t("urbanizationEstimatedImmigrants")
+                  : t("urbanizationEstimatedEmigrants");
         } else {
           displayValue = value;
         }
@@ -1469,14 +1468,13 @@ export default function Urbanization() {
               letterSpacing: "-0.5px",
             }}
           >
-            {t("urbanizationTitle") || "Urbanization"}
+            {t("urbanizationTitle")}
           </h1>
           <p
             className="lead"
             style={{ color: "#555", fontSize: "1.1rem", marginBottom: "15px" }}
           >
-            {t("urbanizationSubtitle") ||
-              "Explore demographic and connectivity patterns across German states in 3D"}
+            {t("urbanizationSubtitle")}
           </p>
         </div>
 
@@ -1487,9 +1485,7 @@ export default function Urbanization() {
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">{t("loading")}</span>
               </div>
-              <p className="text-muted mt-3">
-                {t("fetchingUrbanizationData") || "Fetching data..."}
-              </p>
+              <p className="text-muted mt-3">{t("fetchingUrbanizationData")}</p>
             </div>
           </div>
         )}
@@ -1567,7 +1563,7 @@ export default function Urbanization() {
                           fontWeight: "bold",
                           transition: "all 0.3s ease",
                         }}
-                        title="Toggle between flat 2D map and 3D terrain"
+                        title={t("urbanizationToggleTerrainTitle")}
                       >
                         {isTerrain3D ? "2D" : "3D"}
                       </button>
@@ -1587,10 +1583,14 @@ export default function Urbanization() {
                           transition: "all 0.3s ease",
                         }}
                         title={
-                          isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"
+                          isFullscreen
+                            ? t("urbanizationExitFullscreen")
+                            : t("urbanizationEnterFullscreen")
                         }
                       >
-                        {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                        {isFullscreen
+                          ? t("urbanizationExitFullscreen")
+                          : t("urbanizationFullscreen")}
                       </button>
                     </div>
                   </div>
@@ -1662,7 +1662,7 @@ export default function Urbanization() {
                             e.target.style.color = "#dc3545";
                           }}
                         >
-                          Exit Fullscreen
+                          {t("urbanizationExitFullscreen")}
                         </button>
                       </>
                     )}
@@ -1751,9 +1751,9 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="Population data"
+                                title={t("urbanizationPopulationDataTitle")}
                               >
-                                Population
+                                {t("urbanizationPopulation")}
                               </button>
                               <button
                                 onClick={() => setDataCategory("internetSpeed")}
@@ -1777,9 +1777,9 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="Internet speed data"
+                                title={t("urbanizationInternetSpeedDataTitle")}
                               >
-                                Internet Speed
+                                {t("urbanizationInternetSpeed")}
                               </button>
                             </div>
 
@@ -1811,7 +1811,7 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="50 Mbit/s availability"
+                                  title={t("urbanizationSpeed50Title")}
                                 >
                                   50 Mbit/s
                                 </button>
@@ -1833,7 +1833,7 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="100 Mbit/s availability"
+                                  title={t("urbanizationSpeed100Title")}
                                 >
                                   100 Mbit/s
                                 </button>
@@ -1855,7 +1855,7 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="1000 Mbit/s (1 Gbit/s) availability"
+                                  title={t("urbanizationSpeed1000Title")}
                                 >
                                   1000 Mbit/s
                                 </button>
@@ -1901,9 +1901,9 @@ export default function Urbanization() {
                                       fontSize: "13px",
                                       transition: "all 0.3s ease",
                                     }}
-                                    title="Birth rate data (people born per 1,000 people)"
+                                    title={t("urbanizationBirthRateDataTitle")}
                                   >
-                                    Birth
+                                    {t("urbanizationBirth")}
                                   </button>
                                   <button
                                     onClick={() => setDataCategory("deathRate")}
@@ -1927,9 +1927,9 @@ export default function Urbanization() {
                                       fontSize: "13px",
                                       transition: "all 0.3s ease",
                                     }}
-                                    title="Death rate data (people died per 1,000 people)"
+                                    title={t("urbanizationDeathRateDataTitle")}
                                   >
-                                    Death
+                                    {t("urbanizationDeath")}
                                   </button>
                                 </div>
                                 <div
@@ -1963,9 +1963,11 @@ export default function Urbanization() {
                                       fontSize: "13px",
                                       transition: "all 0.3s ease",
                                     }}
-                                    title="Zuzugsrate data (people moving in per 1,000 people)"
+                                    title={t(
+                                      "urbanizationImmigrationRateDataTitle",
+                                    )}
                                   >
-                                    Immigration
+                                    {t("urbanizationImmigration")}
                                   </button>
                                   <button
                                     onClick={() =>
@@ -1991,9 +1993,11 @@ export default function Urbanization() {
                                       fontSize: "13px",
                                       transition: "all 0.3s ease",
                                     }}
-                                    title="Fortzugsrate data (people moving out per 1,000 people)"
+                                    title={t(
+                                      "urbanizationEmigrationRateDataTitle",
+                                    )}
                                   >
-                                    Emigration
+                                    {t("urbanizationEmigration")}
                                   </button>
                                 </div>
                               </div>
@@ -2036,9 +2040,9 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="Warm gradient: Yellow → Orange → Red"
+                                  title={t("urbanizationWarmGradientTitle")}
                                 >
-                                  Warm
+                                  {t("urbanizationWarm")}
                                 </button>
                                 <button
                                   onClick={() => setColorScheme("choropleth")}
@@ -2062,9 +2066,9 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="Cool gradient: Light Blue → Dark Blue"
+                                  title={t("urbanizationCoolGradientTitle")}
                                 >
-                                  Cool
+                                  {t("urbanizationCool")}
                                 </button>
                               </div>
                             </div>
@@ -2088,7 +2092,7 @@ export default function Urbanization() {
                                 fontWeight: "bold",
                                 transition: "all 0.3s ease",
                               }}
-                              title="Fast forward (5x speed, infinite loop)"
+                              title={t("urbanizationFastForwardTitle")}
                             >
                               5x
                             </button>
@@ -2213,16 +2217,16 @@ export default function Urbanization() {
                       }}
                     >
                       <div style={{ fontSize: "0.9rem", color: "#555" }}>
-                        <strong>Category:</strong>{" "}
+                        <strong>{t("urbanizationCategoryLabel")}:</strong>{" "}
                         {dataCategory === "internetSpeed"
-                          ? `${speedType} Mbit/s availability`
+                          ? `${speedType} Mbit/s ${t("urbanizationAvailability")}`
                           : getCategoryMeta(dataCategory).label}
                       </div>
                       <div style={{ fontSize: "0.9rem", color: "#555" }}>
-                        <strong>Color Scale:</strong>{" "}
+                        <strong>{t("urbanizationColorScaleLabel")}:</strong>{" "}
                         {colorScheme === "heat"
-                          ? "Yellow (Low) → Red (High)"
-                          : "Light Blue (Low) → Dark Blue (High)"}
+                          ? t("urbanizationColorScaleWarm")
+                          : t("urbanizationColorScaleCool")}
                       </div>
                       <div
                         style={{
@@ -2231,7 +2235,7 @@ export default function Urbanization() {
                           marginTop: "8px",
                         }}
                       >
-                        Hover over states to see details
+                        {t("urbanizationHoverStatesHint")}
                       </div>
                     </div>
                   )}
@@ -2282,7 +2286,7 @@ export default function Urbanization() {
                         marginBottom: "0",
                       }}
                     >
-                      Kreise (districts) separated by administrative borders
+                      {t("urbanizationKreiseSubtitle")}
                     </p>
                   </div>
 
@@ -2300,7 +2304,7 @@ export default function Urbanization() {
                         fontWeight: "bold",
                         transition: "all 0.3s ease",
                       }}
-                      title="Toggle between flat 2D map and 3D terrain"
+                      title={t("urbanizationToggleTerrainTitle")}
                     >
                       {isTerrain3D ? "2D" : "3D"}
                     </button>
@@ -2319,10 +2323,14 @@ export default function Urbanization() {
                         transition: "all 0.3s ease",
                       }}
                       title={
-                        isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"
+                        isFullscreen
+                          ? t("urbanizationExitFullscreen")
+                          : t("urbanizationEnterFullscreen")
                       }
                     >
-                      {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                      {isFullscreen
+                        ? t("urbanizationExitFullscreen")
+                        : t("urbanizationFullscreen")}
                     </button>
                     {/* Back Button */}
                     <button
@@ -2346,9 +2354,9 @@ export default function Urbanization() {
                         e.target.style.background = "#fff";
                         e.target.style.color = "#dc3545";
                       }}
-                      title="Back to state-level view"
+                      title={t("urbanizationBackToStateViewTitle")}
                     >
-                      ← Back to States
+                      ← {t("urbanizationBackToStates")}
                     </button>
                   </div>
                 </div>
@@ -2419,7 +2427,7 @@ export default function Urbanization() {
                           e.target.style.color = "#dc3545";
                         }}
                       >
-                        Exit Fullscreen
+                        {t("urbanizationExitFullscreen")}
                       </button>
                     </>
                   )}
@@ -2508,9 +2516,9 @@ export default function Urbanization() {
                                 fontSize: "13px",
                                 transition: "all 0.3s ease",
                               }}
-                              title="Population data"
+                              title={t("urbanizationPopulationDataTitle")}
                             >
-                              Population
+                              {t("urbanizationPopulation")}
                             </button>
                             <button
                               onClick={() => setDataCategory("internetSpeed")}
@@ -2534,9 +2542,9 @@ export default function Urbanization() {
                                 fontSize: "13px",
                                 transition: "all 0.3s ease",
                               }}
-                              title="Internet speed data"
+                              title={t("urbanizationInternetSpeedDataTitle")}
                             >
-                              Internet Speed
+                              {t("urbanizationInternetSpeed")}
                             </button>
                           </div>
 
@@ -2568,7 +2576,7 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="50 Mbit/s availability"
+                                title={t("urbanizationSpeed50Title")}
                               >
                                 50 Mbit/s
                               </button>
@@ -2589,7 +2597,7 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="100 Mbit/s availability"
+                                title={t("urbanizationSpeed100Title")}
                               >
                                 100 Mbit/s
                               </button>
@@ -2610,7 +2618,7 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="1000 Mbit/s (1 Gbit/s) availability"
+                                title={t("urbanizationSpeed1000Title")}
                               >
                                 1000 Mbit/s
                               </button>
@@ -2656,9 +2664,9 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="Birth rate data (people born per 1,000 people)"
+                                  title={t("urbanizationBirthRateDataTitle")}
                                 >
-                                  Birth
+                                  {t("urbanizationBirth")}
                                 </button>
                                 <button
                                   onClick={() => setDataCategory("deathRate")}
@@ -2682,9 +2690,9 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="Death rate data (people died per 1,000 people)"
+                                  title={t("urbanizationDeathRateDataTitle")}
                                 >
-                                  Death
+                                  {t("urbanizationDeath")}
                                 </button>
                               </div>
                               <div
@@ -2718,9 +2726,11 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="Zuzugsrate data (people moving in per 1,000 people)"
+                                  title={t(
+                                    "urbanizationImmigrationRateDataTitle",
+                                  )}
                                 >
-                                  Immigration
+                                  {t("urbanizationImmigration")}
                                 </button>
                                 <button
                                   onClick={() =>
@@ -2746,9 +2756,11 @@ export default function Urbanization() {
                                     fontSize: "13px",
                                     transition: "all 0.3s ease",
                                   }}
-                                  title="Fortzugsrate data (people moving out per 1,000 people)"
+                                  title={t(
+                                    "urbanizationEmigrationRateDataTitle",
+                                  )}
                                 >
-                                  Emigration
+                                  {t("urbanizationEmigration")}
                                 </button>
                               </div>
                             </div>
@@ -2789,9 +2801,9 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="Warm gradient: Yellow → Orange → Red"
+                                title={t("urbanizationWarmGradientTitle")}
                               >
-                                Warm
+                                {t("urbanizationWarm")}
                               </button>
                               <button
                                 onClick={() => setColorScheme("choropleth")}
@@ -2815,9 +2827,9 @@ export default function Urbanization() {
                                   fontSize: "13px",
                                   transition: "all 0.3s ease",
                                 }}
-                                title="Cool gradient: Light Blue → Dark Blue"
+                                title={t("urbanizationCoolGradientTitle")}
                               >
-                                Cool
+                                {t("urbanizationCool")}
                               </button>
                             </div>
                           </div>
@@ -2841,7 +2853,7 @@ export default function Urbanization() {
                               fontWeight: "bold",
                               transition: "all 0.3s ease",
                             }}
-                            title="Fast forward (5x speed, infinite loop)"
+                            title={t("urbanizationFastForwardTitle")}
                           >
                             5x
                           </button>
@@ -2964,16 +2976,16 @@ export default function Urbanization() {
                   }}
                 >
                   <div style={{ fontSize: "0.9rem", color: "#555" }}>
-                    <strong>Category:</strong>{" "}
+                    <strong>{t("urbanizationCategoryLabel")}:</strong>{" "}
                     {dataCategory === "internetSpeed"
-                      ? `${speedType} Mbit/s availability`
+                      ? `${speedType} Mbit/s ${t("urbanizationAvailability")}`
                       : getCategoryMeta(dataCategory).label}
                   </div>
                   <div style={{ fontSize: "0.9rem", color: "#555" }}>
-                    <strong>Color Scale:</strong>{" "}
+                    <strong>{t("urbanizationColorScaleLabel")}:</strong>{" "}
                     {colorScheme === "heat"
-                      ? "Yellow (Low) → Red (High)"
-                      : "Light Blue (Low) → Dark Blue (High)"}
+                      ? t("urbanizationColorScaleWarm")
+                      : t("urbanizationColorScaleCool")}
                   </div>
                   <div
                     style={{
@@ -2982,8 +2994,7 @@ export default function Urbanization() {
                       marginTop: "8px",
                     }}
                   >
-                    Hover over Kreise to see details. Click states on the main
-                    map to zoom in.
+                    {t("urbanizationHoverKreiseHint")}
                   </div>
                 </div>
               </div>
@@ -2999,7 +3010,7 @@ export default function Urbanization() {
                 <span className="visually-hidden">{t("loading")}</span>
               </div>
               <p className="text-muted mt-3">
-                {t("loading") || "Loading Kreise data for"} {selectedState}...
+                {t("urbanizationLoadingKreiseFor")} {selectedState}...
               </p>
             </div>
           </div>
@@ -3010,8 +3021,8 @@ export default function Urbanization() {
           <div className="row justify-content-center">
             <div className="col-lg-8">
               <div className="alert alert-warning" role="alert">
-                <strong>No data:</strong> No Kreise data found for{" "}
-                {selectedState}.
+                <strong>{t("urbanizationNoData")}:</strong>{" "}
+                {t("urbanizationNoKreiseDataFor")} {selectedState}.
                 <button
                   onClick={() => setSelectedState(null)}
                   style={{
@@ -3025,7 +3036,7 @@ export default function Urbanization() {
                     fontWeight: "bold",
                   }}
                 >
-                  Back to States
+                  {t("urbanizationBackToStates")}
                 </button>
               </div>
             </div>
@@ -3062,14 +3073,14 @@ export default function Urbanization() {
             <div style={{ color: "#aaa", fontSize: "13px" }}>
               {hoveredState.dataCategory === "population" ? (
                 <>
-                  Population:{" "}
+                  {t("urbanizationPopulation")}:{" "}
                   <span style={{ color: "#fff", fontWeight: "500" }}>
                     {formatNumber(Math.round(hoveredState.displayValue))}
                   </span>
                 </>
               ) : hoveredState.dataCategory === "internetSpeed" ? (
                 <>
-                  {speedType} Mbit/s Availability:{" "}
+                  {speedType} Mbit/s {t("urbanizationAvailability")}:{" "}
                   <span style={{ color: "#fff", fontWeight: "500" }}>
                     {hoveredState.displayValue.toFixed(1)}%
                   </span>
@@ -3077,7 +3088,7 @@ export default function Urbanization() {
               ) : (
                 <div>
                   <div>
-                    Rate (per 1,000):{" "}
+                    {t("urbanizationRatePerThousand")}:{" "}
                     <span style={{ color: "#fff", fontWeight: "500" }}>
                       {typeof hoveredState.value === "number"
                         ? hoveredState.value.toFixed(1)
