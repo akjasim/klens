@@ -682,7 +682,8 @@ export default function Urbanization() {
         controls.target.lerp(flat2DTarget, 0.12);
         camera.lookAt(controls.target);
 
-        const reachedPosition = camera.position.distanceTo(flat2DPosition) < 0.5;
+        const reachedPosition =
+          camera.position.distanceTo(flat2DPosition) < 0.5;
         const reachedTarget = controls.target.distanceTo(flat2DTarget) < 0.01;
 
         if (reachedPosition && reachedTarget && !isDisposed) {
@@ -1322,7 +1323,8 @@ export default function Urbanization() {
         controls.target.lerp(flat2DTarget, 0.12);
         camera.lookAt(controls.target);
 
-        const reachedPosition = camera.position.distanceTo(flat2DPosition) < 0.25;
+        const reachedPosition =
+          camera.position.distanceTo(flat2DPosition) < 0.25;
         const reachedTarget = controls.target.distanceTo(flat2DTarget) < 0.01;
 
         if (reachedPosition && reachedTarget && !isDisposed) {
@@ -1536,7 +1538,8 @@ export default function Urbanization() {
                         className="fw-bold mb-0"
                         style={{ color: "#2c3e50", fontSize: "1.3rem" }}
                       >
-                        {isTerrain3D ? "🏔️ 3D" : "🗺️ 2D"} {getCategoryMeta(dataCategory).label} Terrain Map
+                        {isTerrain3D ? "🏔️ 3D" : "🗺️ 2D"}{" "}
+                        {getCategoryMeta(dataCategory).label} Terrain Map
                       </h5>
                       <p
                         style={{
@@ -2077,7 +2080,7 @@ export default function Urbanization() {
                               style={{
                                 padding: "8px 16px",
                                 borderRadius: "6px",
-                                border: "2px solid #17a2b8",
+                                border: "none",
                                 background: isFastForward ? "#17a2b8" : "#fff",
                                 color: isFastForward ? "#fff" : "#17a2b8",
                                 cursor: "pointer",
@@ -2087,7 +2090,7 @@ export default function Urbanization() {
                               }}
                               title="Fast forward (5x speed, infinite loop)"
                             >
-                              ⏩
+                              5x
                             </button>
 
                             {/* Play/Pause Button */}
@@ -2137,13 +2140,31 @@ export default function Urbanization() {
                             {/* Year Display */}
                             <div
                               style={{
-                                fontSize: "24px",
-                                fontWeight: "bold",
-                                color: "#2c3e50",
-                                minWidth: "80px",
+                                minWidth: "120px",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
                               }}
                             >
-                              {selectedYear}
+                              <div
+                                style={{
+                                  fontSize: "24px",
+                                  fontWeight: "bold",
+                                  color: "#2c3e50",
+                                }}
+                              >
+                                {selectedYear}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#999",
+                                  marginTop: "2px",
+                                }}
+                              >
+                                ({availableYears[0]} -{" "}
+                                {availableYears[availableYears.length - 1]})
+                              </div>
                             </div>
 
                             {/* Slider */}
@@ -2176,19 +2197,6 @@ export default function Urbanization() {
                                 cursor: "pointer",
                               }}
                             />
-
-                            {/* Year Range */}
-                            <div
-                              style={{
-                                fontSize: "14px",
-                                color: "#999",
-                                minWidth: "100px",
-                                textAlign: "right",
-                              }}
-                            >
-                              {availableYears[0]} -{" "}
-                              {availableYears[availableYears.length - 1]}
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -2262,7 +2270,8 @@ export default function Urbanization() {
                       className="fw-bold mb-0"
                       style={{ color: "#2c3e50", fontSize: "1.3rem" }}
                     >
-                      {isTerrain3D ? "🏔️ 3D" : "🗺️ 2D"} {getCategoryMeta(dataCategory).label} Kreise Map -{" "}
+                      {isTerrain3D ? "🏔️ 3D" : "🗺️ 2D"}{" "}
+                      {getCategoryMeta(dataCategory).label} Kreise Map -{" "}
                       {selectedState}
                     </h5>
                     <p
@@ -2824,7 +2833,7 @@ export default function Urbanization() {
                             style={{
                               padding: "8px 16px",
                               borderRadius: "6px",
-                              border: "2px solid #17a2b8",
+                              border: "none",
                               background: isFastForward ? "#17a2b8" : "#fff",
                               color: isFastForward ? "#fff" : "#17a2b8",
                               cursor: "pointer",
@@ -2834,7 +2843,7 @@ export default function Urbanization() {
                             }}
                             title="Fast forward (5x speed, infinite loop)"
                           >
-                            ⏩
+                            5x
                           </button>
 
                           {/* Play/Pause Button */}
@@ -2883,13 +2892,31 @@ export default function Urbanization() {
                           {/* Year Display */}
                           <div
                             style={{
-                              fontSize: "24px",
-                              fontWeight: "bold",
-                              color: "#2c3e50",
-                              minWidth: "80px",
+                              minWidth: "120px",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
                             }}
                           >
-                            {selectedYear}
+                            <div
+                              style={{
+                                fontSize: "24px",
+                                fontWeight: "bold",
+                                color: "#2c3e50",
+                              }}
+                            >
+                              {selectedYear}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                color: "#999",
+                                marginTop: "2px",
+                              }}
+                            >
+                              ({availableYears[0]} -{" "}
+                              {availableYears[availableYears.length - 1]})
+                            </div>
                           </div>
 
                           {/* Slider */}
@@ -2922,19 +2949,6 @@ export default function Urbanization() {
                               cursor: "pointer",
                             }}
                           />
-
-                          {/* Year Range */}
-                          <div
-                            style={{
-                              fontSize: "14px",
-                              color: "#999",
-                              minWidth: "100px",
-                              textAlign: "right",
-                            }}
-                          >
-                            {availableYears[0]} -{" "}
-                            {availableYears[availableYears.length - 1]}
-                          </div>
                         </div>
                       </div>
                     </div>
