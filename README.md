@@ -2,7 +2,7 @@
 
 Interactive data exploration platform for public Germany datasets, inspired by GapMinder.
 
-Live application: https://klens.jasim.dev
+Live application: https://delens.jasim.dev
 
 ## Overview
 
