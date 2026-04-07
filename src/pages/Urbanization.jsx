@@ -80,6 +80,8 @@ export default function Urbanization() {
   );
   const [kreiseEmigrationRateData, setKreiseEmigrationRateData] = useState([]);
   const [kreiseLoading, setKreiseLoading] = useState(false);
+  const stateInternetSpeedCacheRef = useRef({});
+  const kreiseInternetSpeedCacheRef = useRef({});
 
   const categoryMeta = {
     population: {
@@ -163,41 +165,58 @@ export default function Urbanization() {
     return yearData?.population ?? 0;
   };
 
-  // Fetch state geometry and all state-level indicator data
+  const loadStateCategoryData = async (category, speed = speedType) => {
+    if (category === "population") {
+      if (populationData.length === 0) {
+        const popData = await fetchAllStatesPopulation();
+        setPopulationData(popData);
+      }
+      return;
+    }
+
+    if (category === "internetSpeed") {
+      if (stateInternetSpeedCacheRef.current[speed]) {
+        setInternetSpeedData(stateInternetSpeedCacheRef.current[speed]);
+        return;
+      }
+      const speedData = await fetchAllStatesInternetSpeed(speed);
+      stateInternetSpeedCacheRef.current[speed] = speedData;
+      setInternetSpeedData(speedData);
+      return;
+    }
+
+    if (category === "birthRate" && birthRateData.length === 0) {
+      setBirthRateData(await fetchAllStatesBirthRate());
+      return;
+    }
+
+    if (category === "deathRate" && deathRateData.length === 0) {
+      setDeathRateData(await fetchAllStatesDeathRate());
+      return;
+    }
+
+    if (category === "immigrationRate" && immigrationRateData.length === 0) {
+      setImmigrationRateData(await fetchAllStatesImmigrationRate());
+      return;
+    }
+
+    if (category === "emigrationRate" && emigrationRateData.length === 0) {
+      setEmigrationRateData(await fetchAllStatesEmigrationRate());
+    }
+  };
+
+  // Fetch state geometry and core state-level data
   useEffect(() => {
     const fetchData = async () => {
       setDataError(null);
       setDataLoading(true);
 
       try {
-        // Fetch all state geometries
         const states = await fetchStateGeometry();
-
-        // Fetch population data for all states
         const popData = await fetchAllStatesPopulation();
-
-        // Fetch the remaining indicators in parallel
-        const [
-          speedData,
-          birthData,
-          deathData,
-          immigrationData,
-          emigrationData,
-        ] = await Promise.all([
-          fetchAllStatesInternetSpeed(speedType),
-          fetchAllStatesBirthRate(),
-          fetchAllStatesDeathRate(),
-          fetchAllStatesImmigrationRate(),
-          fetchAllStatesEmigrationRate(),
-        ]);
 
         setStateData(states);
         setPopulationData(popData);
-        setInternetSpeedData(speedData);
-        setBirthRateData(birthData);
-        setDeathRateData(deathData);
-        setImmigrationRateData(immigrationData);
-        setEmigrationRateData(emigrationData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setDataError(err.message || t("failedToFetchData"));
@@ -207,7 +226,34 @@ export default function Urbanization() {
     };
 
     fetchData();
-  }, [speedType]);
+  }, []);
+
+  // Lazy-load selected category data only when needed
+  useEffect(() => {
+    if (!stateData.length) return;
+
+    let cancelled = false;
+    const ensureCategoryLoaded = async () => {
+      setDataError(null);
+      setDataLoading(true);
+      try {
+        await loadStateCategoryData(dataCategory, speedType);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error loading category data:", err);
+          setDataError(err.message || t("failedToFetchData"));
+        }
+      } finally {
+        if (!cancelled) setDataLoading(false);
+      }
+    };
+
+    ensureCategoryLoaded();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dataCategory, speedType, stateData.length]);
 
   useEffect(() => {
     const activeData = getStateCategoryData(dataCategory);
@@ -243,12 +289,12 @@ export default function Urbanization() {
   useEffect(() => {
     if (!selectedState) {
       setKreiseData([]);
-      setKreisePopulationData({});
-      setKreiseInternetSpeedData({});
-      setKreiseBirthRateData({});
-      setKreiseDeathRateData({});
-      setKreiseImmigrationRateData({});
-      setKreiseEmigrationRateData({});
+      setKreisePopulationData([]);
+      setKreiseInternetSpeedData([]);
+      setKreiseBirthRateData([]);
+      setKreiseDeathRateData([]);
+      setKreiseImmigrationRateData([]);
+      setKreiseEmigrationRateData([]);
       return;
     }
 
@@ -257,24 +303,14 @@ export default function Urbanization() {
       try {
         const geometry = await fetchKreiseGeometryForState(selectedState);
         const popData = await fetchAllKreisePopulationForState(selectedState);
-        const speedData = await fetchAllKreiseInternetSpeedForState(
-          selectedState,
-          speedType,
-        );
-        const birthData = await fetchAllKreiseBirthRateForState(selectedState);
-        const deathData = await fetchAllKreiseDeathRateForState(selectedState);
-        const immigrationData =
-          await fetchAllKreiseImmigrationRateForState(selectedState);
-        const emigrationData =
-          await fetchAllKreiseEmigrationRateForState(selectedState);
 
         setKreiseData(geometry);
         setKreisePopulationData(popData);
-        setKreiseInternetSpeedData(speedData);
-        setKreiseBirthRateData(birthData);
-        setKreiseDeathRateData(deathData);
-        setKreiseImmigrationRateData(immigrationData);
-        setKreiseEmigrationRateData(emigrationData);
+        setKreiseInternetSpeedData([]);
+        setKreiseBirthRateData([]);
+        setKreiseDeathRateData([]);
+        setKreiseImmigrationRateData([]);
+        setKreiseEmigrationRateData([]);
       } catch (err) {
         console.error(`Error fetching Kreise data for ${selectedState}:`, err);
       } finally {
@@ -283,7 +319,77 @@ export default function Urbanization() {
     };
 
     fetchKreiseData();
-  }, [selectedState, speedType]);
+  }, [selectedState]);
+
+  // Lazy-load selected Kreise category data only when needed
+  useEffect(() => {
+    if (!selectedState || !kreiseData.length) return;
+
+    let cancelled = false;
+    const ensureKreiseCategoryLoaded = async () => {
+      setKreiseLoading(true);
+      try {
+        if (dataCategory === "internetSpeed") {
+          const cacheKey = `${selectedState}_${speedType}`;
+          if (kreiseInternetSpeedCacheRef.current[cacheKey]) {
+            setKreiseInternetSpeedData(kreiseInternetSpeedCacheRef.current[cacheKey]);
+          } else {
+            const speedData = await fetchAllKreiseInternetSpeedForState(
+              selectedState,
+              speedType,
+            );
+            kreiseInternetSpeedCacheRef.current[cacheKey] = speedData;
+            setKreiseInternetSpeedData(speedData);
+          }
+        }
+
+        if (dataCategory === "birthRate" && kreiseBirthRateData.length === 0) {
+          setKreiseBirthRateData(
+            await fetchAllKreiseBirthRateForState(selectedState),
+          );
+        }
+
+        if (dataCategory === "deathRate" && kreiseDeathRateData.length === 0) {
+          setKreiseDeathRateData(
+            await fetchAllKreiseDeathRateForState(selectedState),
+          );
+        }
+
+        if (
+          dataCategory === "immigrationRate" &&
+          kreiseImmigrationRateData.length === 0
+        ) {
+          setKreiseImmigrationRateData(
+            await fetchAllKreiseImmigrationRateForState(selectedState),
+          );
+        }
+
+        if (
+          dataCategory === "emigrationRate" &&
+          kreiseEmigrationRateData.length === 0
+        ) {
+          setKreiseEmigrationRateData(
+            await fetchAllKreiseEmigrationRateForState(selectedState),
+          );
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(
+            `Error loading Kreise category ${dataCategory} for ${selectedState}:`,
+            err,
+          );
+        }
+      } finally {
+        if (!cancelled) setKreiseLoading(false);
+      }
+    };
+
+    ensureKreiseCategoryLoaded();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedState, kreiseData.length, dataCategory, speedType]);
 
   // Cleanup Kreise canvas and scene when selectedState is null
   useEffect(() => {
@@ -325,6 +431,7 @@ export default function Urbanization() {
   useEffect(() => {
     if (
       !mountRef.current ||
+      selectedState ||
       stateData.length === 0 ||
       getStateCategoryData(dataCategory).length === 0 ||
       availableYears.length === 0
@@ -422,13 +529,7 @@ export default function Urbanization() {
       controls.enablePan = true;
     }
     controls.enabled = true;
-    const handleStateControlsChange = () => {
-      const polar = controls.getPolarAngle();
-      const azimuth = controls.getAzimuthalAngle();
-      console.log(
-        `[State Camera] polar=${polar.toFixed(4)}, azimuth=${azimuth.toFixed(4)}, position=(${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`,
-      );
-    };
+    const handleStateControlsChange = () => {};
     controls.addEventListener("change", handleStateControlsChange);
     controls.update();
     stateControlsRef.current = controls;
@@ -470,10 +571,6 @@ export default function Urbanization() {
       maxValue = 1;
     }
 
-    const logUnit = getCategoryMeta(dataCategory).unit;
-    console.log(
-      `${getCategoryMeta(dataCategory).label} range: ${minValue.toFixed(1)}${logUnit} - ${maxValue.toFixed(1)}${logUnit}`,
-    );
 
     // Color scale function - supports multiple schemes
     const getColor = (value) => {
@@ -564,10 +661,6 @@ export default function Urbanization() {
       // Color by value
       const color = getColor(value);
 
-      const unit = categoryInfo.unit;
-      console.log(
-        `${state.name}: ${value.toFixed(dataCategory === "population" ? 0 : 1)}${unit} (norm: ${normalized.toFixed(3)}) → height ${terrainHeight.toFixed(1)}, color: rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`,
-      );
 
       // PHASE 2: Convert polygons to 3D shapes
       const shapes = [];
@@ -648,7 +741,7 @@ export default function Urbanization() {
         dataCategory: dataCategory,
         color: color,
         area: area,
-        unit: unit,
+        unit: categoryInfo.unit,
         displayLabel: displayLabel,
       };
 
@@ -664,7 +757,6 @@ export default function Urbanization() {
       meshesRef.current.push(mesh);
     });
 
-    console.log("Total terrain meshes created:", meshesRef.current.length);
 
     // Animation loop
     let animationId;
@@ -863,6 +955,10 @@ export default function Urbanization() {
     stateData,
     populationData,
     internetSpeedData,
+    birthRateData,
+    deathRateData,
+    immigrationRateData,
+    emigrationRateData,
     selectedYear,
     availableYears,
     colorScheme,
@@ -1037,13 +1133,7 @@ export default function Urbanization() {
       controls.enablePan = true;
     }
     controls.enabled = true;
-    const handleKreiseControlsChange = () => {
-      const polar = controls.getPolarAngle();
-      const azimuth = controls.getAzimuthalAngle();
-      console.log(
-        `[Kreise Camera] polar=${polar.toFixed(4)}, azimuth=${azimuth.toFixed(4)}, position=(${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`,
-      );
-    };
+    const handleKreiseControlsChange = () => {};
     controls.addEventListener("change", handleKreiseControlsChange);
     controls.update();
     kreiseControlsRef.current = controls;
@@ -1121,9 +1211,6 @@ export default function Urbanization() {
       maxValue = 1;
     }
 
-    console.log(
-      `Kreise ${getCategoryMeta(dataCategory).label} range: ${minValue.toFixed(1)}${getCategoryMeta(dataCategory).unit} - ${maxValue.toFixed(1)}${getCategoryMeta(dataCategory).unit}`,
-    );
 
     // Color scale function
     const getColor = (value) => {
@@ -1305,7 +1392,6 @@ export default function Urbanization() {
       kreiseMeshesRef.current.push(mesh);
     });
 
-    console.log("Total Kreise meshes created:", kreiseMeshesRef.current.length);
 
     // Animation loop
     let animationId;
@@ -1441,6 +1527,10 @@ export default function Urbanization() {
     kreiseData,
     kreisePopulationData,
     kreiseInternetSpeedData,
+    kreiseBirthRateData,
+    kreiseDeathRateData,
+    kreiseImmigrationRateData,
+    kreiseEmigrationRateData,
     selectedYear,
     colorScheme,
     isTerrain3D,
