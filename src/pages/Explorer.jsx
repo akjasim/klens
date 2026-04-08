@@ -205,13 +205,22 @@ export default function ExplorerForm() {
   }
 
   return (
-    <div className="w-100 py-5 px-3">
+    <div className="delens-page-shell w-100 py-5 px-3">
       <div className="container-lg">
-        <h2 className="mb-4 text-primary fw-bold">{t("explorerTitle")}</h2>
+        <div className="text-center mb-4">
+          <span className="delens-chip mb-3">Advanced Query Studio</span>
+          <h1 className="display-6 fw-bold mb-2 delens-hero-title">
+            {t("explorerTitle")}
+          </h1>
+          <p className="mb-0 delens-hero-subtitle">
+            Build, run, inspect, and iterate Elasticsearch queries in one
+            workspace.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="mb-4">
           <div
-            className="bg-dark text-light rounded p-3"
+            className="delens-code-panel p-3"
             style={{ fontFamily: "Menlo, Monaco, monospace", fontSize: 14 }}
           >
             {/* Each field is a separate 'line' */}
@@ -372,7 +381,7 @@ export default function ExplorerForm() {
                 </div>
               </div>
             </div>
-            <div className="bg-light border rounded p-3 flex-grow-1 overflow-auto">
+            <div className="delens-response-box p-3 flex-grow-1 overflow-auto">
               {response ? (
                 <>
                   {response.type === "json" ? (
@@ -404,7 +413,7 @@ export default function ExplorerForm() {
           </div>
           {historyOpen && (
             <div
-              className="border rounded p-3 bg-white flex-shrink-0 d-flex flex-column history-panel"
+              className="delens-history-panel p-3 flex-shrink-0 d-flex flex-column history-panel"
               style={{ height: "420px" }}
             >
               <div className="d-flex justify-content-between align-items-center mb-3">

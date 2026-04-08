@@ -263,16 +263,17 @@ export default function TimeSeries() {
   }));
 
   return (
-    <div className="w-100 py-4 px-4">
+    <div className="delens-page-shell w-100 py-4 px-4">
       <div className="container-fluid">
         {/* Header */}
         <div className="text-center mb-5">
-          <h1 className="display-5 fw-bold text-primary mb-3">
-            📊 {t("timeSeriesTitle")}
+          <span className="delens-chip mb-3">Guided Trend Analysis</span>
+          <h1 className="display-5 fw-bold mb-3 delens-hero-title">
+            {t("timeSeriesTitle")}
           </h1>
-          <p className="lead text-muted">{t("timeSeriesSubtitle")}</p>
+          <p className="lead delens-hero-subtitle">{t("timeSeriesSubtitle")}</p>
           <p
-            className="fs-6 text-secondary"
+            className="fs-6 delens-hero-description"
             style={{ maxWidth: "600px", margin: "0 auto" }}
           >
             {t("timeSeriesHelp")}
@@ -282,7 +283,7 @@ export default function TimeSeries() {
         {/* Selection Form */}
         <div className="row justify-content-center mb-5">
           <div className="col-lg-8">
-            <div className="card shadow-sm border-0">
+            <div className="delens-panel p-0">
               <div className="card-body p-4">
                 <form onSubmit={handleApply}>
                   <div className="row g-3">
@@ -515,7 +516,7 @@ export default function TimeSeries() {
           <div className="row g-4 align-items-start justify-content-center">
             <div className="col-lg-8">
               <div
-                className="bg-white border rounded-3 shadow-sm p-4 h-100"
+                className="delens-panel p-4 h-100"
                 style={{ overflow: "hidden" }}
               >
                 <div className="d-flex align-items-center justify-content-between mb-3">
