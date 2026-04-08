@@ -648,39 +648,27 @@ export default function DemographicIndicator() {
   }, [isAgeAnimating, years.length]);
 
   return (
-    <div
-      className="w-100"
-      style={{
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        minHeight: "100vh",
-        paddingBottom: "40px",
-      }}
-    >
+    <div className="delens-page-shell w-100" style={{ paddingBottom: "40px" }}>
       <div className="container-fluid py-5">
         {/* Header */}
         <div className="text-center mb-5">
           <h1
-            className="fw-bold mb-3"
-            style={{
-              fontSize: "2.5rem",
-              color: "#2c3e50",
-              letterSpacing: "-0.5px",
-            }}
+            className="fw-bold mb-3 delens-hero-title"
+            style={{ fontSize: "2.5rem" }}
           >
             {t("demographicIndicatorTitle")}
           </h1>
           <p
-            className="lead"
-            style={{ color: "#555", fontSize: "1.1rem", marginBottom: "15px" }}
+            className="lead delens-hero-subtitle"
+            style={{ fontSize: "1.1rem", marginBottom: "15px" }}
           >
             {t("demographicIndicatorSubtitle")}
           </p>
           <p
-            className="fs-6"
+            className="fs-6 delens-hero-description"
             style={{
               maxWidth: "650px",
               margin: "0 auto",
-              color: "#777",
               lineHeight: "1.6",
             }}
           >

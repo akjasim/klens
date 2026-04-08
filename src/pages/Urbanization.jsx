@@ -332,7 +332,9 @@ export default function Urbanization() {
         if (dataCategory === "internetSpeed") {
           const cacheKey = `${selectedState}_${speedType}`;
           if (kreiseInternetSpeedCacheRef.current[cacheKey]) {
-            setKreiseInternetSpeedData(kreiseInternetSpeedCacheRef.current[cacheKey]);
+            setKreiseInternetSpeedData(
+              kreiseInternetSpeedCacheRef.current[cacheKey],
+            );
           } else {
             const speedData = await fetchAllKreiseInternetSpeedForState(
               selectedState,
@@ -571,7 +573,6 @@ export default function Urbanization() {
       maxValue = 1;
     }
 
-
     // Color scale function - supports multiple schemes
     const getColor = (value) => {
       const range = maxValue - minValue;
@@ -660,7 +661,6 @@ export default function Urbanization() {
 
       // Color by value
       const color = getColor(value);
-
 
       // PHASE 2: Convert polygons to 3D shapes
       const shapes = [];
@@ -756,7 +756,6 @@ export default function Urbanization() {
       scene.add(mesh);
       meshesRef.current.push(mesh);
     });
-
 
     // Animation loop
     let animationId;
@@ -1211,7 +1210,6 @@ export default function Urbanization() {
       maxValue = 1;
     }
 
-
     // Color scale function
     const getColor = (value) => {
       const range = maxValue - minValue;
@@ -1392,7 +1390,6 @@ export default function Urbanization() {
       kreiseMeshesRef.current.push(mesh);
     });
 
-
     // Animation loop
     let animationId;
     let isDisposed = false;
@@ -1539,30 +1536,19 @@ export default function Urbanization() {
   ]);
 
   return (
-    <div
-      className="w-100"
-      style={{
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        minHeight: "100vh",
-        paddingBottom: "40px",
-      }}
-    >
+    <div className="delens-page-shell w-100" style={{ paddingBottom: "40px" }}>
       <div className="container-fluid py-5">
         {/* Header */}
         <div className="text-center mb-5">
           <h1
-            className="fw-bold mb-3"
-            style={{
-              fontSize: "2.5rem",
-              color: "#2c3e50",
-              letterSpacing: "-0.5px",
-            }}
+            className="fw-bold mb-3 delens-hero-title"
+            style={{ fontSize: "2.5rem" }}
           >
             {t("urbanizationTitle")}
           </h1>
           <p
-            className="lead"
-            style={{ color: "#555", fontSize: "1.1rem", marginBottom: "15px" }}
+            className="lead delens-hero-subtitle"
+            style={{ fontSize: "1.1rem", marginBottom: "15px" }}
           >
             {t("urbanizationSubtitle")}
           </p>
