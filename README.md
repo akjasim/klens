@@ -126,7 +126,7 @@ The proxy function:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.19+ or 22.12+
 - npm
 
 ### Install
