@@ -4,11 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npx --yes netlify dev",
-    "dev:vite": "vite",
+    "dev": "vite",
+    "dev:netlify": "npx --yes netlify dev",
     "build": "vite build",
+    "build:netlify": "npx --yes netlify build --offline",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:netlify": "npx --yes netlify dev --dir dist --functions netlify/functions"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",

@@ -135,10 +135,20 @@ The proxy function:
 npm install
 ```
 
-### Run Development Server
+The application uses a Netlify Function as a proxy for Elasticsearch requests. The normal Vite commands run only the frontend bundle; use the `:netlify` commands when you need to run the frontend together with the Netlify proxy layer and functions.
+
+### Run Frontend Development Server
 
 ```bash
-npx netlify dev
+npm run dev
+```
+
+This starts the Vite frontend without Netlify Functions.
+
+To run the frontend with the Netlify proxy layer, use:
+
+```bash
+npm run dev:netlify
 ```
 
 ### Build
@@ -147,11 +157,31 @@ npx netlify dev
 npm run build
 ```
 
+Builds the frontend bundle with Vite.
+
+To verify the Netlify build locally, including the configured build settings:
+
+```bash
+npm run build:netlify
+```
+
+Builds the frontend with Netlify's configured build process and bundles the Netlify Functions.
+
 ### Preview Production Build
 
 ```bash
 npm run preview
 ```
+
+This previews the frontend-only Vite build and assumes that `npm run build` has just completed successfully.
+
+To preview the production build together with the Netlify Function and redirects, first run `npm run build:netlify`, then run:
+
+```bash
+npm run preview:netlify
+```
+
+These commands run locally and do not require a Netlify account. A Netlify account is only required to deploy the site.
 
 ### Lint
 
